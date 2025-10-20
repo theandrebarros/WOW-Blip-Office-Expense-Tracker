@@ -10,6 +10,10 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@latest/dist/framer-motion.umd.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
@@ -530,10 +534,10 @@
                             <button
                                 onClick={onCloudConnect}
                                 className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                                aria-label="Connect GitHub"
-                                title={cloudLinked ? 'GitHub Connected' : 'Connect GitHub'}
+                                aria-label="Connect Cloud"
+                                title={cloudLinked ? 'Cloud Connected' : 'Connect Cloud'}
                             >
-                                <span className="text-sm font-semibold">{cloudLinked ? 'GitHub ✓' : 'Connect GitHub'}</span>
+                                <span className="text-sm font-semibold">{cloudLinked ? 'Cloud ✓' : 'Connect Cloud'}</span>
                             </button>
                             {cloudLinked && (
                                 <button
@@ -954,86 +958,75 @@
             </motion.footer>
         );
 
-        // GitHub Gist API functions
-        const GIST_ID = 'b409f20ebf5f59d8efb998e02368ec4e';
+        // Firebase Cloud Storage
+        let firebaseApp = null;
+        let firestore = null;
+        let auth = null;
+        let userId = null;
         
-        const ghHasConfig = () => {
+        const initFirebase = async () => {
+            if (firebaseApp) return true;
+            
             try {
-                return !!(localStorage.getItem('wowo-gh-token') && localStorage.getItem('wowo-gh-gist-id'));
-            } catch {
+                // Firebase config
+                const firebaseConfig = {
+                    apiKey: "AIzaSyANFnCB3u_NmOuJScEGMPLFQemcpqLGJwA",
+                    authDomain: "wowo-blip-office.firebaseapp.com",
+                    projectId: "wowo-blip-office",
+                    storageBucket: "wowo-blip-office.firebasestorage.app",
+                    messagingSenderId: "18582872789",
+                    appId: "1:18582872789:web:e1e43c32e2791c9a4bf85c",
+                    measurementId: "G-D5FYVFF90H"
+                };
+                
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                firestore = firebase.firestore();
+                auth = firebase.auth();
+                
+                // Sign in anonymously
+                const userCredential = await auth.signInAnonymously();
+                userId = userCredential.user.uid;
+                
+                return true;
+            } catch (error) {
+                console.error('Firebase init error:', error);
                 return false;
             }
         };
         
-        const ghLoadState = async () => {
+        const cloudHasConfig = () => {
+            return firebaseApp !== null && userId !== null;
+        };
+        
+        const cloudLoadState = async () => {
+            if (!await initFirebase()) return null;
+            
             try {
-                const token = localStorage.getItem('wowo-gh-token');
-                const gistId = localStorage.getItem('wowo-gh-gist-id') || GIST_ID;
-                if (!token) return null;
-                
-                const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    console.error('Failed to load from GitHub:', response.status);
-                    return null;
-                }
-                
-                const gist = await response.json();
-                const content = gist.files['wowo-data.json']?.content;
-                return content ? JSON.parse(content) : null;
+                const doc = await firestore.collection('userData').doc(userId).get();
+                return doc.exists ? doc.data().state : null;
             } catch (error) {
-                console.error('Error loading from GitHub:', error);
+                console.error('Error loading from cloud:', error);
                 return null;
             }
         };
         
-        const ghSaveState = async (data) => {
+        const cloudSaveState = async (data) => {
+            if (!await initFirebase()) return false;
+            
             try {
-                const token = localStorage.getItem('wowo-gh-token');
-                const gistId = localStorage.getItem('wowo-gh-gist-id') || GIST_ID;
-                if (!token) return false;
-                
-                const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            'wowo-data.json': {
-                                content: JSON.stringify(data, null, 2)
-                            }
-                        }
-                    })
+                await firestore.collection('userData').doc(userId).set({
+                    state: data,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
-                return response.ok;
+                return true;
             } catch (error) {
-                console.error('Error saving to GitHub:', error);
+                console.error('Error saving to cloud:', error);
                 return false;
             }
         };
         
-        const ghConnectViaPrompt = () => {
-            const token = prompt('Enter your GitHub Personal Access Token:');
-            if (!token) return false;
-            
-            const gistId = prompt('Enter your Gist ID (or press Enter to use default):', GIST_ID);
-            
-            try {
-                localStorage.setItem('wowo-gh-token', token);
-                localStorage.setItem('wowo-gh-gist-id', gistId || GIST_ID);
-                return true;
-            } catch {
-                return false;
-            }
+        const cloudConnectViaPrompt = async () => {
+            return await initFirebase();
         };
 
         // Main App Component
@@ -1097,47 +1090,52 @@
                 hydrateRoot
             } = useAppState();
 
-            const [cloudLinked, setCloudLinked] = useState(() => ghHasConfig());
+            const [cloudLinked, setCloudLinked] = useState(false);
+            
             useEffect(() => {
                 (async () => {
-                    if (!ghHasConfig()) return;
-                    const loaded = await ghLoadState();
-                    if (loaded) hydrateRoot(loaded);
+                    if (await cloudConnectViaPrompt()) {
+                        setCloudLinked(true);
+                        const loaded = await cloudLoadState();
+                        if (loaded) hydrateRoot(loaded);
+                    }
                 })();
             }, [hydrateRoot]);
 
             const connectCloud = useCallback(async () => {
-                if (!ghConnectViaPrompt()) return;
-                setCloudLinked(true);
-                const loaded = await ghLoadState();
-                if (loaded) hydrateRoot(loaded);
+                if (await cloudConnectViaPrompt()) {
+                    setCloudLinked(true);
+                    const loaded = await cloudLoadState();
+                    if (loaded) hydrateRoot(loaded);
+                }
             }, [hydrateRoot]);
+            
             const syncCloud = useCallback(async () => {
                 const raw = localStorage.getItem('wowo-blip-office-visit-v2');
                 if (!raw) return;
-                await ghSaveState(JSON.parse(raw));
+                await cloudSaveState(JSON.parse(raw));
             }, []);
 
-            // Auto-save to GitHub when state changes
+            // Auto-save to cloud when state changes
             useEffect(() => {
                 if (!cloudLinked) return;
                 
                 const timeoutId = setTimeout(async () => {
                     const raw = localStorage.getItem('wowo-blip-office-visit-v2');
                     if (raw) {
-                        await ghSaveState(JSON.parse(raw));
+                        await cloudSaveState(JSON.parse(raw));
                     }
                 }, 1000); // Debounce saves by 1 second
                 
                 return () => clearTimeout(timeoutId);
             }, [state, cloudLinked]);
 
-            // Periodic sync from GitHub (every 30 seconds)
+            // Periodic sync from cloud (every 30 seconds)
             useEffect(() => {
                 if (!cloudLinked) return;
                 
                 const intervalId = setInterval(async () => {
-                    const loaded = await ghLoadState();
+                    const loaded = await cloudLoadState();
                     if (loaded) {
                         hydrateRoot(loaded);
                     }
