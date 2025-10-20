@@ -315,11 +315,44 @@
             }
         };
 
+        // Multi-User System
+        const generateUserId = () => {
+            return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        };
+
+        const getCurrentUserId = () => {
+            let userId = localStorage.getItem('wowo-user-id');
+            if (!userId) {
+                userId = generateUserId();
+                localStorage.setItem('wowo-user-id', userId);
+            }
+            return userId;
+        };
+
+        const getCurrentUsername = () => {
+            return localStorage.getItem('wowo-username') || getCurrentUserId().split('_')[1];
+        };
+
+        const setCurrentUsername = (username) => {
+            localStorage.setItem('wowo-username', username);
+        };
+
+        const switchUser = (newUserId) => {
+            localStorage.setItem('wowo-user-id', newUserId);
+            window.location.reload(); // Reload to apply new user data
+        };
+
+        const createNewUser = () => {
+            const newUserId = generateUserId();
+            switchUser(newUserId);
+        };
+
         // Custom hook for app state
         const useAppState = () => {
             const [rootState, setRootState] = useState(() => {
                 try {
-                    const savedV2 = localStorage.getItem('wowo-blip-office-visit-v2');
+                    const userId = getCurrentUserId();
+                    const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                     if (savedV2) return JSON.parse(savedV2);
                     const legacy = localStorage.getItem('wowo-blip-office-visit');
                     if (legacy) {
@@ -339,7 +372,8 @@
 
             const saveRootState = useCallback((newRoot) => {
                 setRootState(newRoot);
-                localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(newRoot));
+                const userId = getCurrentUserId();
+                localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRoot));
             }, []);
 
             const currentYearKey = String(rootState.selectedYear);
@@ -516,7 +550,12 @@
         };
 
         // Header Component
-        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync }) => (
+        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync }) => {
+            const [showUserMenu, setShowUserMenu] = useState(false);
+            const currentUserId = getCurrentUserId();
+            const currentUsername = getCurrentUsername();
+            
+            return (
             <motion.header 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -532,6 +571,62 @@
                             <h1 className="fd-h1 font-bold fd-text-strong">{t('appTitle')}</h1>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
+                            {/* User Menu */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="User menu"
+                                    title={`Current user: ${currentUsername}`}
+                                >
+                                    <span className="text-sm font-semibold">👤 {currentUsername}</span>
+                                </button>
+                                
+                                {showUserMenu && (
+                                    <div className="absolute right-0 top-full mt-2 w-48 fd-bg-surface border fd-border-default rounded-lg shadow-lg z-50">
+                                        <div className="p-2">
+                                            <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default">
+                                                Current User: {currentUsername}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const newUsername = prompt('Enter new username:', currentUsername);
+                                                    if (newUsername && newUsername.trim()) {
+                                                        setCurrentUsername(newUsername.trim());
+                                                        setShowUserMenu(false);
+                                                        window.location.reload(); // Reload to update UI
+                                                    }
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                            >
+                                                ✏️ Change Username
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    createNewUser();
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                            >
+                                                + Create New User
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const newUserId = prompt('Enter User ID to switch to:');
+                                                    if (newUserId) {
+                                                        switchUser(newUserId);
+                                                    }
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                            >
+                                                🔄 Switch User
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
                             <button
                                 onClick={onCloudConnect}
                                 className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -571,7 +666,8 @@
                     </div>
                 </div>
             </motion.header>
-        );
+            );
+        };
 
         // Year Filter Component
         const YearFilter = ({ selectedYear, years, onSelect, onAddNext, t }) => {
@@ -947,7 +1043,7 @@
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={{ scale: 0.9, backgroundColor: '#ef4444' }}
                         onClick={onReset}
                         className="flex items-center space-x-2 px-6 py-3 fd-bg-surface fd-text-default border fd-border-default hover:opacity-90 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -984,6 +1080,7 @@
             
             try {
                 console.log('Loading state from JSONBin...');
+                const userId = getCurrentUserId();
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: {
                         'X-Master-Key': JSONBIN_API_KEY
@@ -997,7 +1094,12 @@
                 
                 const result = await response.json();
                 console.log('Loaded state:', result.record);
-                return result.record || null;
+                
+                // Return user-specific data if it exists
+                if (result.record && result.record[userId]) {
+                    return result.record[userId];
+                }
+                return null;
             } catch (error) {
                 console.error('Error loading from JSONBin:', error);
                 return null;
@@ -1012,13 +1114,32 @@
             
             try {
                 console.log('Saving state to JSONBin:', data);
+                const userId = getCurrentUserId();
+                
+                // First, load existing data to preserve other users
+                let allUsersData = {};
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        allUsersData = result.record || {};
+                    }
+                } catch (e) {
+                    console.log('No existing data found, starting fresh');
+                }
+                
+                // Update current user's data
+                allUsersData[userId] = data;
+                
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Master-Key': JSONBIN_API_KEY
                     },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(allUsersData)
                 });
                 
                 const success = response.ok;
