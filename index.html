@@ -1086,10 +1086,19 @@
             
             useEffect(() => {
                 (async () => {
+                    console.log('Attempting to connect to cloud...');
                     if (await cloudConnectViaPrompt()) {
+                        console.log('Cloud connection successful, setting linked to true');
                         setCloudLinked(true);
                         const loaded = await cloudLoadState();
-                        if (loaded) hydrateRoot(loaded);
+                        if (loaded) {
+                            console.log('Loaded data from cloud:', loaded);
+                            hydrateRoot(loaded);
+                        } else {
+                            console.log('No data found in cloud');
+                        }
+                    } else {
+                        console.log('Cloud connection failed');
                     }
                 })();
             }, [hydrateRoot]);
@@ -1110,6 +1119,8 @@
 
             // Auto-save to cloud when state changes
             useEffect(() => {
+                console.log('Auto-save effect triggered. Cloud linked:', cloudLinked, 'State:', state);
+                
                 if (!cloudLinked) {
                     console.log('Cloud not linked, skipping auto-save');
                     return;
@@ -1118,16 +1129,22 @@
                 console.log('Setting up auto-save timer...');
                 const timeoutId = setTimeout(async () => {
                     const raw = localStorage.getItem('wowo-blip-office-visit-v2');
+                    console.log('Raw localStorage data:', raw);
+                    
                     if (raw) {
                         console.log('Auto-saving to cloud...');
-                        const success = await cloudSaveState(JSON.parse(raw));
+                        const data = JSON.parse(raw);
+                        const success = await cloudSaveState(data);
                         console.log('Auto-save result:', success);
                     } else {
-                        console.log('No data to save');
+                        console.log('No data to save in localStorage');
                     }
                 }, 1000); // Debounce saves by 1 second
                 
-                return () => clearTimeout(timeoutId);
+                return () => {
+                    console.log('Clearing auto-save timer');
+                    clearTimeout(timeoutId);
+                };
             }, [state, cloudLinked]);
 
             // Periodic sync from cloud (every 30 seconds)
