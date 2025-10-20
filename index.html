@@ -572,7 +572,7 @@
                 className="sticky top-0 z-10 fd-bg-surface backdrop-blur-sm border-b fd-border-default"
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2 mr-4">
                                 <img src="https://www.blip.pt/images/new-logo-dark.svg" alt="Blip" className="h-8 w-auto logo-lightmode" />
@@ -580,7 +580,7 @@
                             </div>
                             <h1 className="fd-h1 font-bold fd-text-strong">{t('appTitle')}</h1>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                             <button
                                 onClick={onCloudConnect}
                                 className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
