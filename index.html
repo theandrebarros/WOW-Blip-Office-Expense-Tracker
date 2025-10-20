@@ -484,6 +484,12 @@
                 document.body.removeChild(link);
             }, [state, calculations]);
 
+            const hydrateRoot = useCallback((newRootState) => {
+                console.log('Hydrating root state with:', newRootState);
+                setRootState(newRootState);
+                localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(newRootState));
+            }, []);
+
             return {
                 state,
                 calculations,
@@ -506,7 +512,8 @@
                         }
                     };
                     saveRootState(newRoot);
-                }
+                },
+                hydrateRoot
             };
         };
 
