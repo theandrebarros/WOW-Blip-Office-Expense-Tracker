@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOW, Quarter Office Visit Expense Tracker</title>
+    <link rel="icon" href="https://www.blip.pt/images/favicon.png" type="image/png">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@latest/dist/framer-motion.umd.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        .focus-visible\:ring-2:focus-visible {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        .aria-live {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+        /* FD Theme tokens as CSS variables and minimal utilities */
+        :root {
+            /* FD Base Light (reference) */
+            /* Typography – ✨ new/future products (inter) */
+            --fd-font-primary: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+            --fd-font-label: 'Roboto Condensed', 'Inter', system-ui, sans-serif;
+            --fd-fw-300: 300;
+            --fd-fw-400: 400;
+            --fd-fw-500: 500;
+            --fd-fw-600: 600;
+            --fd-fw-700: 700;
+            --fd-fw-800: 800;
+            --fd-fw-900: 900;
+            --fd-fs-010: 8px;
+            --fd-fs-020: 10px;
+            --fd-fs-030: 12px;
+            --fd-fs-040: 14px;
+            --fd-fs-050: 16px;
+            --fd-fs-060: 18px;
+            --fd-fs-070: 20px;
+            --fd-fs-080: 22px;
+            --fd-fs-090: 24px;
+            --fd-fs-100: 28px;
+            --fd-fs-110: 32px;
+            --fd-fs-120: 36px;
+            --fd-fs-130: 40px;
+            --fd-fs-140: 48px;
+            --fd-fs-150: 60px;
+            --fd-ls-010: 0px;
+            --fd-ls-020: 0.5px;
+            --fd-ls-030: 1px;
+            --fd-lh-010: 100%;
+            --fd-lh-020: 110%;
+            --fd-lh-030: 125%;
+            --fd-lh-040: 150%;
+            --fd-content-strong: #05285a; /* navyD3 */
+            --fd-content-default: #1c1d1d; /* greyD4 used as strong on light */
+            --fd-content-subtle: #6a6f73; /* grey */
+            --fd-bg-base: #eaf0f6; /* greyL4 */
+            --fd-bg-surface: #ffffff; /* white */
+            --fd-bg-layer: #f7fbff; /* greyL5 */
+            --fd-border-default: #b0b7bf; /* greyL2 */
+            --fd-border-subtle: #c6d3e1; /* navyL4 */
+            --fd-link: #0070eb; /* blue */
+            --fd-link-hover: #004ea3; /* blueD2 */
+            --fd-brand-primary: #0070eb; /* blue */
+        }
+        .dark {
+            /* FD Base Dark */
+            --fd-content-strong: #ffffff; /* white */
+            --fd-content-default: #ced4db; /* greyL3 */
+            --fd-content-subtle: #969da3; /* greyL1 */
+            --fd-bg-base: #0a0a0a; /* black */
+            --fd-bg-surface: #1c1d1d; /* greyD4 */
+            --fd-bg-layer: #2b2d2e; /* greyD3 */
+            --fd-border-default: #6a6f73; /* grey */
+            --fd-border-subtle: #4d5153; /* greyD1 */
+            --fd-link: #64aeff; /* blueL2 */
+            --fd-link-hover: #0070eb; /* blue */
+            --fd-brand-primary: #2b90ff; /* primaryL1 */
+        }
+        /* Minimal utility classes to consume the variables */
+        .fd-bg-base { background-color: var(--fd-bg-base); }
+        .fd-bg-surface { background-color: color-mix(in srgb, var(--fd-bg-surface) 80%, transparent); }
+        .fd-bg-layer { background-color: var(--fd-bg-layer); }
+        .fd-text-strong { color: var(--fd-content-strong); }
+        .fd-text-default { color: var(--fd-content-default); }
+        .fd-text-subtle { color: var(--fd-content-subtle); }
+        .fd-border-default { border-color: var(--fd-border-subtle); }
+        .fd-link { color: var(--fd-link); }
+        .fd-link:hover { color: var(--fd-link-hover); }
+        .fd-input { background-color: var(--fd-bg-layer); color: var(--fd-content-default); border-color: var(--fd-border-default); }
+        .fd-input::placeholder { color: var(--fd-content-subtle); }
+        .fd-hover-surface:hover { background-color: var(--fd-bg-layer); }
+        /* Typography utilities */
+        body { font-family: var(--fd-font-primary); font-size: var(--fd-fs-050); line-height: var(--fd-lh-040); letter-spacing: var(--fd-ls-010); }
+        h1, .fd-h1 { font-family: var(--fd-font-primary); font-weight: var(--fd-fw-700); font-size: 16px; line-height: 1.5rem; letter-spacing: var(--fd-ls-010); }
+        h2, .fd-h2 { font-family: var(--fd-font-primary); font-weight: var(--fd-fw-600); font-size: var(--fd-fs-090); line-height: var(--fd-lh-030); }
+        label, .fd-label { font-family: var(--fd-font-label); font-weight: var(--fd-fw-500); letter-spacing: var(--fd-ls-020); }
+        @media (max-width: 640px) {
+            .fd-mobile-h1 { font-size: 1rem; line-height: 1.5rem; }
+        }
+        /* Logo theme swap */
+        .logo-lightmode { display: inline-block; }
+        .logo-darkmode { display: none; }
+        .dark .logo-lightmode { display: none; }
+        .dark .logo-darkmode { display: inline-block; }
+        /* Semantic feedback tokens */
+        :root {
+            --fd-success-accent: #31c268; /* greenL2 */
+            --fd-success-border: #128000; /* green */
+            --fd-warning-accent: #eac300; /* yellowL3 */
+            --fd-warning-border: #eac300; /* yellowL3 */
+            --fd-danger-accent: #eb4758; /* redL1 */
+            --fd-danger-border: #d22839; /* red */
+        }
+        .dark {
+            --fd-success-accent: #7fd9a1; /* greenL3 */
+            --fd-success-border: #005d23; /* greenD2 */
+            --fd-warning-accent: #ffdc2e; /* yellowL4 */
+            --fd-warning-border: #756100; /* yellowD1 */
+            --fd-danger-accent: #ea6875; /* redL2 */
+            --fd-danger-border: #a40023; /* redD2 */
+        }
+        .fd-text-success { color: var(--fd-success-accent); }
+        .fd-text-warning { color: var(--fd-warning-accent); }
+        .fd-text-danger { color: var(--fd-danger-accent); }
+        .fd-border-success { border-color: var(--fd-success-border); }
+        .fd-border-warning { border-color: var(--fd-warning-border); }
+        .fd-border-danger { border-color: var(--fd-danger-border); }
+        /* Alert helpers */
+        :root { --fd-danger-bg-subtle: #fdeced; }
+        .dark { --fd-danger-bg-subtle: #40020d; }
+        .fd-alert { border-width: 1px; border-style: solid; }
+        .fd-alert-danger { background-color: var(--fd-danger-bg-subtle); border-color: var(--fd-danger-border); }
+        .fd-alert-title { color: var(--fd-content-strong); font-weight: var(--fd-fw-600); }
+        .fd-alert-desc { color: var(--fd-content-default); }
+    </style>
+</head>
+<body class="min-h-screen fd-bg-base fd-text-default">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback } = React;
+        // Safe framer-motion fallback if UMD global is unavailable
+        const fm = window.framerMotion;
+        const motionShim = new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
+        const { motion, AnimatePresence } = fm ? { motion: fm.motion, AnimatePresence: fm.AnimatePresence } : { motion: motionShim, AnimatePresence: ({ children }) => React.createElement(React.Fragment, null, children) };
+
+        // Types
+        // (Drive integration removed per user request)
+        const QuarterKey = {
+            Q1: "Q1",
+            Q2: "Q2", 
+            Q3: "Q3",
+            Q4: "Q4"
+        };
+
+        const INITIAL_STATE = {
+            quarters: {
+                Q1: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                Q2: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                Q3: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                Q4: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+            },
+            budgetPerQuarter: 380,
+        };
+
+        const createInitialYearState = () => JSON.parse(JSON.stringify(INITIAL_STATE));
+
+        // Root state with multi-year support
+        const DEFAULT_START_YEAR = 2025;
+        const getDefaultSelectedYear = () => {
+            const y = new Date().getFullYear();
+            return y >= DEFAULT_START_YEAR ? y : DEFAULT_START_YEAR;
+        };
+
+        // Utility functions
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('pt-PT', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        };
+        const formatGBP = (amount) => {
+            return new Intl.NumberFormat('en-GB', {
+                style: 'currency',
+                currency: 'GBP',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        };
+
+        // --- GitHub Gist sync (client-side) ---
+        const GH_TOKEN_KEY = 'wowo-gh-token';
+        const GH_GIST_ID_KEY = 'wowo-gh-gist-id';
+        const GH_FILENAME = 'wowo-state.json';
+
+        // Prefill defaults if missing (user-provided)
+        try {
+            if (!localStorage.getItem(GH_GIST_ID_KEY)) {
+                localStorage.setItem(GH_GIST_ID_KEY, 'b409f20ebf5f59d8efb998e02368ec4e');
+            }
+            if (!localStorage.getItem(GH_TOKEN_KEY)) {
+                localStorage.setItem(GH_TOKEN_KEY, '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');
+            }
+        } catch {}
+
+        const ghState = { token: null, gistId: null };
+        const ghHasConfig = () => {
+            try {
+                ghState.token = localStorage.getItem(GH_TOKEN_KEY) || null;
+                ghState.gistId = localStorage.getItem(GH_GIST_ID_KEY) || null;
+            } catch {}
+            return Boolean(ghState.token && ghState.gistId);
+        };
+        async function ghFetch(path, options) {
+            if (!ghHasConfig()) throw new Error('Missing GitHub config');
+            const res = await fetch(`https://api.github.com${path}`, {
+                ...(options || {}),
+                headers: {
+                    Accept: 'application/vnd.github+json',
+                    Authorization: `Bearer ${ghState.token}`,
+                    ...(options && options.headers ? options.headers : {}),
+                }
+            });
+            if (!res.ok) throw new Error(`GitHub error ${res.status}`);
+            return res;
+        }
+        async function ghLoadState() {
+            if (!ghHasConfig()) return null;
+            try {
+                const res = await ghFetch(`/gists/${ghState.gistId}`);
+                const data = await res.json();
+                const file = data.files && (data.files[GH_FILENAME] || data.files[Object.keys(data.files)[0]]);
+                if (!file || !file.content) return null;
+                return JSON.parse(file.content);
+            } catch { return null; }
+        }
+        async function ghSaveState(rootObj) {
+            if (!ghHasConfig()) return false;
+            try {
+                await ghFetch(`/gists/${ghState.gistId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: { [GH_FILENAME]: { content: JSON.stringify(rootObj || {}, null, 0) } } }),
+                });
+                return true;
+            } catch { return false; }
+        }
+        function ghConnectViaPrompt() {
+            try {
+                const token = prompt('Paste your GitHub PAT (Gists: read/write):', localStorage.getItem(GH_TOKEN_KEY) || '');
+                if (!token) return false;
+                const gistId = prompt('Paste your Gist ID (the long hash):', localStorage.getItem(GH_GIST_ID_KEY) || '');
+                if (!gistId) return false;
+                localStorage.setItem(GH_TOKEN_KEY, token);
+                localStorage.setItem(GH_GIST_ID_KEY, gistId);
+                ghState.token = token; ghState.gistId = gistId;
+                return true;
+            } catch { return false; }
+        }
+
+        const validateSpentAmount = (value) => {
+            if (value === '') return { valid: true, value: 0, empty: true };
+            const normalized = String(value).replace(',', '.');
+            if (!/^\d*(?:[\.,]\d{0,2})?$/.test(String(value))) {
+                return { valid: false, value: 0 };
+            }
+            const num = parseFloat(normalized);
+            if (isNaN(num) || num < 0) return { valid: false, value: 0 };
+            return { valid: true, value: Math.round(num * 100) / 100 };
+        };
+
+        // i18n
+        const TRANSLATIONS = {
+            en: {
+                appTitle: 'WOW, Office Visit Expenses Tracker',
+                selectYear: 'Select year',
+                addNext: '+ Add',
+                annualSummary: 'Annual Summary',
+                totalAvailable: 'Total Annual Available',
+                totalSpent: 'Total Spent',
+                annualBalance: 'Annual Balance',
+                quarters: 'Quarters',
+                flightToOffice: 'Flight to Office (€)',
+                flightHome: 'Flight Home (€)',
+                hotel: 'Hotel (€)',
+                active: 'Active',
+                inactive: 'Inactive',
+                toggleOn: 'Activate',
+                toggleOff: 'Deactivate',
+                remainingQuarter: 'Quarter Remaining:',
+                quarterTotal: 'Quarter Total:',
+                overBudgetInfo: 'Spending exceeds the Quarter budget',
+                resetAll: 'Reset All',
+                exportCsv: 'Export CSV',
+                srTotalsPrefix: 'Totals',
+                csvQuarter: 'Quarter',
+                csvActive: 'Active',
+                csvBudget: 'Budget (€)',
+                csvSpent: 'Spent (€)',
+                csvRemaining: 'Remaining (€)',
+                csvTotalAvailable: 'Total Available',
+                csvTotalSpent: 'Total Spent',
+                csvAnnualBalance: 'Annual Balance',
+                themeLight: 'Light mode',
+                themeDark: 'Dark mode',
+                langToggle: 'Language',
+            },
+            pt: {
+                appTitle: 'WOW, Expesas de Visita ao Office',
+                selectYear: 'Selecionar ano',
+                addNext: '+ Adicionar',
+                annualSummary: 'Resumo Anual',
+                totalAvailable: 'Total Anual Disponível',
+                totalSpent: 'Total Gasto',
+                annualBalance: 'Saldo Anual',
+                quarters: 'Quarters',
+                flightToOffice: 'Flight to Office (€)',
+                flightHome: 'Flight Home (€)',
+                hotel: 'Hotel (€)',
+                active: 'Ativo',
+                inactive: 'Inativo',
+                toggleOn: 'Ativar',
+                toggleOff: 'Desativar',
+                remainingQuarter: 'Restante do Quarter:',
+                quarterTotal: 'Total do Quarter:',
+                overBudgetInfo: 'Gasto excede o orçamento do Quarter',
+                resetAll: 'Repor Tudo',
+                exportCsv: 'Exportar CSV',
+                srTotalsPrefix: 'Totais',
+                csvQuarter: 'Quarter',
+                csvActive: 'Ativo',
+                csvBudget: 'Orçamento (€)',
+                csvSpent: 'Gasto (€)',
+                csvRemaining: 'Restante (€)',
+                csvTotalAvailable: 'Total Disponível',
+                csvTotalSpent: 'Total Gasto',
+                csvAnnualBalance: 'Saldo Anual',
+                themeLight: 'Modo claro',
+                themeDark: 'Modo escuro',
+                langToggle: 'Idioma',
+            }
+        };
+
+        // Custom hook for app state
+        const useAppState = () => {
+            const [rootState, setRootState] = useState(() => {
+                try {
+                    const savedV2 = localStorage.getItem('wowo-blip-office-visit-v2');
+                    if (savedV2) return JSON.parse(savedV2);
+                    const legacy = localStorage.getItem('wowo-blip-office-visit');
+                    if (legacy) {
+                        const legacyState = JSON.parse(legacy);
+                        return {
+                            selectedYear: getDefaultSelectedYear(),
+                            years: { [String(getDefaultSelectedYear())]: legacyState }
+                        };
+                    }
+                } catch {}
+                const initialYear = getDefaultSelectedYear();
+                const initialYears = {};
+                initialYears[String(initialYear)] = createInitialYearState();
+                initialYears[String(initialYear + 1)] = createInitialYearState();
+                return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 1.17 } };
+            });
+
+            const saveRootState = useCallback((newRoot) => {
+                setRootState(newRoot);
+                localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(newRoot));
+                // best-effort sync to GitHub Gist if configured
+                ghSaveState(newRoot).catch(() => {});
+            }, []);
+
+            const currentYearKey = String(rootState.selectedYear);
+            const ensureQuarterShape = (q) => ({
+                active: q?.active ?? true,
+                spent: Number(q?.spent ?? 0),
+                details: {
+                    flightToOffice: Number(q?.details?.flightToOffice ?? 0),
+                    flightHome: Number(q?.details?.flightHome ?? 0),
+                    hotel: Number(q?.details?.hotel ?? 0)
+                }
+            });
+            const ensureStateShape = (s) => ({
+                budgetPerQuarter: Number(s?.budgetPerQuarter ?? 380),
+                quarters: {
+                    Q1: ensureQuarterShape(s?.quarters?.Q1),
+                    Q2: ensureQuarterShape(s?.quarters?.Q2),
+                    Q3: ensureQuarterShape(s?.quarters?.Q3),
+                    Q4: ensureQuarterShape(s?.quarters?.Q4)
+                },
+                settings: {
+                    gbpMode: Boolean(s?.settings?.gbpMode ?? false),
+                    gbpRate: Number(s?.settings?.gbpRate ?? 1.17)
+                }
+            });
+            const rawState = rootState.years[currentYearKey] || createInitialYearState();
+            const state = ensureStateShape(rawState);
+
+            const calculations = useMemo(() => {
+                const activeQuarters = Object.values(state.quarters).filter(q => q.active);
+                const totalAvailable = activeQuarters.length * state.budgetPerQuarter;
+                const totalSpent = activeQuarters.reduce((sum, q) => sum + q.spent, 0);
+                const annualBalance = totalAvailable - totalSpent;
+                return { totalAvailable, totalSpent, annualBalance, activeQuartersCount: activeQuarters.length };
+            }, [state.quarters, state.budgetPerQuarter]);
+
+            const updateYearState = useCallback((mutator) => {
+                const yearKey = String(rootState.selectedYear);
+                const updatedYear = mutator(rootState.years[yearKey] || createInitialYearState());
+                const newRoot = {
+                    ...rootState,
+                    years: { ...rootState.years, [yearKey]: updatedYear }
+                };
+                saveRootState(newRoot);
+            }, [rootState, saveRootState]);
+
+            const selectYear = useCallback((year) => {
+                const y = Number(year);
+                const nextRoot = {
+                    ...rootState,
+                    selectedYear: y,
+                    years: rootState.years[y] ? rootState.years : { ...rootState.years, [String(y)]: createInitialYearState() }
+                };
+                saveRootState(nextRoot);
+            }, [rootState, saveRootState]);
+
+            const addNextYear = useCallback(() => {
+                const next = rootState.selectedYear + 1;
+                if (rootState.years[String(next)]) {
+                    selectYear(next);
+                    return;
+                }
+                const newRoot = {
+                    ...rootState,
+                    selectedYear: next,
+                    years: { ...rootState.years, [String(next)]: createInitialYearState() }
+                };
+                saveRootState(newRoot);
+            }, [rootState, selectYear, saveRootState]);
+
+            const toggleQuarter = useCallback((quarterKey) => {
+                updateYearState((prev) => ({
+                    ...prev,
+                    quarters: {
+                        ...prev.quarters,
+                        [quarterKey]: { ...prev.quarters[quarterKey], active: !prev.quarters[quarterKey].active }
+                    }
+                }));
+            }, [updateYearState]);
+
+            const updateQuarterDetail = useCallback((quarterKey, field, value) => {
+                const validation = validateSpentAmount(value);
+                if (!validation.valid) return;
+                updateYearState((prev) => {
+                    const q = prev.quarters[quarterKey];
+                    const details = {
+                        ...q.details,
+                        [field]: validation.value
+                    };
+                    const spent = Number(details.flightToOffice) + Number(details.flightHome) + Number(details.hotel);
+                    return {
+                        ...prev,
+                        quarters: {
+                            ...prev.quarters,
+                            [quarterKey]: { ...q, details, spent }
+                        }
+                    };
+                });
+            }, [updateYearState]);
+
+            const resetAll = useCallback(() => {
+                updateYearState(() => createInitialYearState());
+            }, [updateYearState]);
+
+            const exportToCSV = useCallback(() => {
+                const csvData = [];
+                
+                // Headers
+                const lang = (localStorage.getItem('fd-lang') || 'pt');
+                const L = TRANSLATIONS[lang] || TRANSLATIONS.pt;
+                csvData.push([L.csvQuarter, L.csvActive, L.csvBudget, L.csvSpent, L.csvRemaining]);
+                
+                // Quarter data
+                Object.entries(state.quarters).forEach(([key, quarter]) => {
+                    const remaining = state.budgetPerQuarter - quarter.spent;
+                    csvData.push([
+                        key,
+                        quarter.active ? (lang === 'pt' ? 'Sim' : 'Yes') : (lang === 'pt' ? 'Não' : 'No'),
+                        state.budgetPerQuarter.toFixed(2),
+                        quarter.spent.toFixed(2),
+                        remaining.toFixed(2)
+                    ]);
+                });
+                
+                // Totals
+                csvData.push([]);
+                csvData.push([L.csvTotalAvailable, '', calculations.totalAvailable.toFixed(2), '', '']);
+                csvData.push([L.csvTotalSpent, '', '', calculations.totalSpent.toFixed(2), '']);
+                csvData.push([L.csvAnnualBalance, '', '', '', calculations.annualBalance.toFixed(2)]);
+                
+                const csvContent = csvData.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `wowo-blip-office-visit-${lang}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, [state, calculations]);
+
+            return {
+                state,
+                calculations,
+                toggleQuarter,
+                updateQuarterDetail,
+                resetAll,
+                exportToCSV,
+                selectYear,
+                addNextYear,
+                selectedYear: rootState.selectedYear,
+                availableYears: Object.keys(rootState.years).map(y => Number(y)).sort(),
+                updateSettings: (patch) => {
+                    const yearKey = String(rootState.selectedYear);
+                    const updatedYear = rootState.years[yearKey] || createInitialYearState();
+                    const newRoot = {
+                        ...rootState,
+                        years: {
+                            ...rootState.years,
+                            [yearKey]: ensureStateShape({ ...updatedYear, settings: { ...state.settings, ...patch } })
+                        }
+                    };
+                    saveRootState(newRoot);
+                }
+            };
+        };
+
+        // Header Component
+        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync }) => (
+            <motion.header 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="sticky top-0 z-10 fd-bg-surface backdrop-blur-sm border-b fd-border-default"
+            >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2 mr-4">
+                                <img src="https://www.blip.pt/images/new-logo-dark.svg" alt="Blip" className="h-8 w-auto logo-lightmode" />
+                                <img src="https://www.blip.pt/images/new-logo.svg" alt="Blip" className="h-8 w-auto logo-darkmode" />
+                            </div>
+                            <h1 className="fd-h1 font-bold fd-text-strong">{t('appTitle')}</h1>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={onCloudConnect}
+                                className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                aria-label="Connect GitHub"
+                                title={cloudLinked ? 'GitHub Connected' : 'Connect GitHub'}
+                            >
+                                <span className="text-sm font-semibold">{cloudLinked ? 'GitHub ✓' : 'Connect GitHub'}</span>
+                            </button>
+                            {cloudLinked && (
+                                <button
+                                    onClick={onCloudSync}
+                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="Sync now"
+                                    title="Sync now"
+                                >
+                                    <span className="text-sm font-semibold">Sync</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={onToggleLang}
+                                className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-label={t('langToggle')}
+                                title={t('langToggle')}
+                            >
+                                <span className="text-sm font-semibold">{lang === 'pt' ? 'PT' : 'EN'}</span>
+                            </button>
+                            <button
+                                onClick={onToggleTheme}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-label={isDark ? t('themeLight') : t('themeDark')}
+                                title={isDark ? t('themeLight') : t('themeDark')}
+                            >
+                                <span aria-hidden className="text-lg">{isDark ? '🌞' : '🌙'}</span>
+                                <span className="text-sm">{isDark ? (lang === 'pt' ? 'Claro' : 'Light') : (lang === 'pt' ? 'Escuro' : 'Dark')}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </motion.header>
+        );
+
+        // Year Filter Component
+        const YearFilter = ({ selectedYear, years, onSelect, onAddNext, t }) => {
+            const [focusIndex, setFocusIndex] = React.useState(() => Math.max(0, years.indexOf(selectedYear)));
+
+            useEffect(() => {
+                setFocusIndex(Math.max(0, years.indexOf(selectedYear)));
+            }, [years, selectedYear]);
+
+            const onKeyDown = (e) => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+                e.preventDefault();
+                const last = years.length - 1;
+                let next = focusIndex;
+                if (e.key === 'ArrowLeft') next = focusIndex === 0 ? last : focusIndex - 1;
+                if (e.key === 'ArrowRight') next = focusIndex === last ? 0 : focusIndex + 1;
+                if (e.key === 'Home') next = 0;
+                if (e.key === 'End') next = last;
+                setFocusIndex(next);
+                const year = years[next];
+                const el = document.getElementById(`year-pill-${year}`);
+                if (el) el.focus();
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+                    <div className="rounded-2xl fd-bg-layer border fd-border-default px-3 py-2 overflow-x-auto">
+                        <div
+                            role="tablist"
+                            aria-label={t('selectYear')}
+                            className="flex items-center gap-6 min-w-max"
+                            onKeyDown={onKeyDown}
+                        >
+                            {years.map((y) => {
+                                const selected = y === selectedYear;
+                                return (
+                                    <button
+                                        key={y}
+                                        id={`year-pill-${y}`}
+                                        role="tab"
+                                        aria-selected={selected}
+                                        tabIndex={selected ? 0 : -1}
+                                        onClick={() => onSelect(y)}
+                                        className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap ${
+                                            selected ? 'bg-blue-600 text-white' : 'fd-text-default fd-hover-surface'
+                                        }`}
+                                    >
+                                        {y}
+                                    </button>
+                                );
+                            })}
+
+                            <button
+                                role="tab"
+                                aria-selected="false"
+                                tabIndex={-1}
+                                onClick={onAddNext}
+                                className="ml-auto px-5 py-2.5 rounded-full text-sm font-medium fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-nowrap"
+                                aria-label={t('addNext')}
+                            >
+                                {t('addNext')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Annual Summary Component
+        const AnnualSummary = ({ calculations, t }) => (
+            <motion.section 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+            >
+                <h2 className="text-xl font-semibold fd-text-strong mb-6">{t('annualSummary')}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className="fd-bg-surface rounded-2xl p-6 shadow-lg border fd-border-default"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm fd-text-subtle mb-1">{t('totalAvailable')}</p>
+                                <p className="text-2xl font-bold fd-text-success tabular-nums">
+                                    {formatCurrency(calculations.totalAvailable)}
+                                </p>
+                            </div>
+                            <span aria-hidden className="h-8 w-8 fd-text-success">€</span>
+                        </div>
+                    </motion.div>
+
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className="fd-bg-surface rounded-2xl p-6 shadow-lg border fd-border-default"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm fd-text-subtle mb-1">{t('totalSpent')}</p>
+                                <p className="text-2xl font-bold fd-text-warning tabular-nums">
+                                    {formatCurrency(calculations.totalSpent)}
+                                </p>
+                            </div>
+                            <span aria-hidden className="h-8 w-8 fd-text-warning">⚠️</span>
+                        </div>
+                    </motion.div>
+
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className={`fd-bg-surface rounded-2xl p-6 shadow-lg border ${
+                            calculations.annualBalance >= 0 
+                                ? 'fd-border-success' 
+                                : 'fd-border-danger'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm fd-text-subtle mb-1">{t('annualBalance')}</p>
+                                <p className={`text-2xl font-bold tabular-nums ${
+                                    calculations.annualBalance >= 0 
+                                        ? 'fd-text-success' 
+                                        : 'fd-text-danger'
+                                }`}>
+                                    {formatCurrency(calculations.annualBalance)}
+                                </p>
+                            </div>
+                            {calculations.annualBalance >= 0 ? (
+                                <span aria-hidden className="h-8 w-8 fd-text-success">✅</span>
+                            ) : (
+                                <span aria-hidden className="h-8 w-8 fd-text-danger">⚠️</span>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            </motion.section>
+        );
+
+        // Quarter Card Component
+        const QuarterCard = ({ quarterKey, quarter, onToggle, onChangeDetail, budgetPerQuarter, syncKey, t, gbpMode, gbpRate }) => {
+            const remaining = budgetPerQuarter - quarter.spent;
+            const isOverBudget = remaining < 0;
+            const isWithinBudget = remaining >= 0 && quarter.spent > 0;
+            const officeRef = React.useRef(null);
+            const homeRef = React.useRef(null);
+            const hotelRef = React.useRef(null);
+
+            useEffect(() => {
+                const isFocusedEl = (ref) => ref && ref.current && document.activeElement === ref.current;
+                const toDisplay = (eur) => {
+                    const num = Number(eur ?? 0);
+                    if (!num) return '';
+                    return (gbpMode ? (num / gbpRate) : num).toFixed(2);
+                };
+                if (officeRef.current && !isFocusedEl(officeRef)) {
+                    officeRef.current.value = toDisplay(quarter.details?.flightToOffice);
+                }
+                if (homeRef.current && !isFocusedEl(homeRef)) {
+                    homeRef.current.value = toDisplay(quarter.details?.flightHome);
+                }
+                if (hotelRef.current && !isFocusedEl(hotelRef)) {
+                    const num = Number(quarter.details?.hotel ?? 0);
+                    hotelRef.current.value = num ? num.toFixed(2) : '';
+                }
+            }, [syncKey, quarter.details?.flightToOffice, quarter.details?.flightHome, quarter.details?.hotel, gbpMode, gbpRate]);
+
+            const handleChange = () => {
+                // Uncontrolled while typing; no-op to keep IME composition stable
+            };
+
+            const commitField = (ref, field) => {
+                const raw = ref.current ? ref.current.value : '';
+                const validation = validateSpentAmount(raw);
+                const current = Number(quarter.details?.[field] ?? 0);
+                const normalized = (() => {
+                    if (field === 'hotel') {
+                        return validation.valid ? validation.value.toFixed(2) : (current ? current.toFixed(2) : '');
+                    }
+                    return validation.valid ? validation.value.toFixed(2) : (current ? (gbpMode ? (current / gbpRate).toFixed(2) : current.toFixed(2)) : '');
+                })();
+                if (ref.current) ref.current.value = normalized;
+                if (validation.valid) {
+                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value * gbpRate) : validation.value);
+                    onChangeDetail(quarterKey, field, eur.toFixed(2));
+                }
+            };
+
+            const handleFocus = () => {};
+            const handleBlur = (ref, field) => { commitField(ref, field); };
+            const handleEnter = (e, ref, field) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const target = e.currentTarget;
+                // Defer commit to ensure the latest keystroke is applied in the DOM value
+                setTimeout(() => {
+                    commitField(ref, field);
+                    target.blur();
+                }, 0);
+            };
+
+            return (
+                <motion.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    className={`rounded-2xl p-6 shadow-lg border transition-all duration-200 ${
+                        quarter.active
+                            ? isOverBudget
+                                ? 'bg-red-900/20 border-red-500'
+                                : isWithinBudget
+                                ? 'bg-emerald-900/20 border-emerald-500'
+                                : 'fd-bg-surface fd-border-default'
+                            : 'fd-bg-surface fd-border-default opacity-60'
+                    }`}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold fd-text-strong">{quarterKey}</h3>
+                            {isOverBudget && (
+                                <span aria-hidden className="inline-flex items-center justify-center fd-text-danger text-base leading-none">⚠️</span>
+                            )}
+                            {!isOverBudget && isWithinBudget && (
+                                <span aria-hidden className="inline-flex items-center justify-center fd-text-success text-base leading-none">✅</span>
+                            )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <label 
+                                htmlFor={`toggle-${quarterKey}`}
+                                className="text-sm fd-text-subtle"
+                            >
+                                {quarter.active ? t('active') : t('inactive')}
+                            </label>
+                            <button
+                                id={`toggle-${quarterKey}`}
+                                onClick={() => onToggle(quarterKey)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent ${
+                                    quarter.active ? 'bg-blue-600' : 'bg-[var(--fd-bg-layer)]'
+                                }`}
+                                aria-label={`${quarter.active ? t('toggleOff') : t('toggleOn')} ${quarterKey}`}
+                            >
+                                <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        quarter.active ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-3">
+                            <div>
+                                <label htmlFor={`office-${quarterKey}`} className="block text-sm font-medium fd-text-strong mb-2">{t('flightToOffice').replace('(€)','')} ({gbpMode ? '£' : '€'})</label>
+                                <input
+                                    id={`office-${quarterKey}`}
+                                    type="text"
+                                    inputMode="decimal"
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v/gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    onChange={handleChange}
+                                    onBlur={() => handleBlur(officeRef, 'flightToOffice')}
+                                    onFocus={handleFocus}
+                                    onKeyDown={(e) => handleEnter(e, officeRef, 'flightToOffice')}
+                                    onKeyUp={(e) => handleEnter(e, officeRef, 'flightToOffice')}
+                                    ref={officeRef}
+                                    disabled={!quarter.active}
+                                    className={`w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed tabular-nums ${isOverBudget ? 'border-red-500' : 'fd-border-default'}`}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`home-${quarterKey}`} className="block text-sm font-medium fd-text-strong mb-2">{t('flightHome').replace('(€)','')} ({gbpMode ? '£' : '€'})</label>
+                                <input
+                                    id={`home-${quarterKey}`}
+                                    type="text"
+                                    inputMode="decimal"
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v/gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    onChange={handleChange}
+                                    onBlur={() => handleBlur(homeRef, 'flightHome')}
+                                    onFocus={handleFocus}
+                                    onKeyDown={(e) => handleEnter(e, homeRef, 'flightHome')}
+                                    onKeyUp={(e) => handleEnter(e, homeRef, 'flightHome')}
+                                    ref={homeRef}
+                                    disabled={!quarter.active}
+                                    className={`w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed tabular-nums ${isOverBudget ? 'border-red-500' : 'fd-border-default'}`}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`hotel-${quarterKey}`} className="block text-sm font-medium fd-text-strong mb-2">{t('hotel')}</label>
+                                <input
+                                    id={`hotel-${quarterKey}`}
+                                    type="text"
+                                    inputMode="decimal"
+                                    defaultValue={(() => { const v = Number(quarter.details?.hotel ?? 0); return v ? v.toFixed(2) : '' })()}
+                                    onChange={handleChange}
+                                    onBlur={() => handleBlur(hotelRef, 'hotel')}
+                                    onFocus={handleFocus}
+                                    onKeyDown={(e) => handleEnter(e, hotelRef, 'hotel')}
+                                    onKeyUp={(e) => handleEnter(e, hotelRef, 'hotel')}
+                                    ref={hotelRef}
+                                    disabled={!quarter.active}
+                                    className={`w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed tabular-nums ${isOverBudget ? 'border-red-500' : 'fd-border-default'}`}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm fd-text-subtle">{t('remainingQuarter')}</span>
+                            <div className="flex items-end space-x-2">
+                                <div className="flex flex-col items-end">
+                                    <span className={`font-semibold tabular-nums ${
+                                        isOverBudget 
+                                            ? 'fd-text-danger' 
+                                            : isWithinBudget 
+                                            ? 'fd-text-success' 
+                                            : 'fd-text-subtle'
+                                    }`}>
+                                        {formatCurrency(remaining)}
+                                    </span>
+                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining / (gbpRate || 1))}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm fd-text-subtle">{t('quarterTotal')}</span>
+                            <div className="flex flex-col items-end">
+                                <span className="font-semibold tabular-nums fd-text-strong">{formatCurrency(quarter.spent)}</span>
+                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent / (gbpRate || 1))}</span>
+                            </div>
+                        </div>
+
+                        {isOverBudget && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="fd-alert fd-alert-danger rounded-lg px-4 py-3"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <span aria-hidden className="text-red-400">⛔</span>
+                                    <div className="space-y-1">
+                                        <div className="fd-alert-title hidden">{t('overBudgetInfo').split(':')[0] || t('overBudgetInfo')}</div>
+                                        <div className="fd-alert-desc text-sm">{t('overBudgetInfo')}</div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // Footer Actions Component
+        const FooterActions = ({ onReset, onExportCsv, t }) => (
+            <motion.footer 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+            >
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onReset}
+                        className="flex items-center space-x-2 px-6 py-3 fd-bg-surface fd-text-default border fd-border-default hover:opacity-90 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <span aria-hidden className="h-5 w-5">↩️</span>
+                        <span>{t('resetAll')}</span>
+                    </motion.button>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onExportCsv}
+                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <span aria-hidden className="h-5 w-5">⬇️</span>
+                        <span>{t('exportCsv')}</span>
+                    </motion.button>
+                </div>
+            </motion.footer>
+        );
+
+        // Main App Component
+        const App = () => {
+            const [isDark, setIsDark] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('fd-theme-mode');
+                    if (saved === 'light') return false;
+                    if (saved === 'dark') return true;
+                } catch {}
+                return document.documentElement.classList.contains('dark');
+            });
+
+            const [lang, setLang] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('fd-lang');
+                    if (saved) return saved;
+                    const navLangs = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+                    const lower = navLangs.map(l => String(l || '').toLowerCase());
+                    const detected = lower.some(l => l.startsWith('pt')) ? 'pt' : 'en';
+                    localStorage.setItem('fd-lang', detected);
+                    return detected;
+                } catch {
+                    return 'pt';
+                }
+            });
+
+            const t = useCallback((key) => (TRANSLATIONS[lang] || TRANSLATIONS.pt)[key] || key, [lang]);
+
+            useEffect(() => {
+                const root = document.documentElement;
+                if (isDark) {
+                    root.classList.add('dark');
+                    localStorage.setItem('fd-theme-mode', 'dark');
+                } else {
+                    root.classList.remove('dark');
+                    localStorage.setItem('fd-theme-mode', 'light');
+                }
+            }, [isDark]);
+
+            const toggleTheme = useCallback(() => setIsDark((v) => !v), []);
+            const toggleLang = useCallback(() => {
+                setLang((prev) => {
+                    const next = prev === 'pt' ? 'en' : 'pt';
+                    try { localStorage.setItem('fd-lang', next); } catch {}
+                    return next;
+                });
+            }, []);
+            const {
+                state,
+                calculations,
+                toggleQuarter,
+                updateQuarterDetail,
+                resetAll,
+                exportToCSV,
+                selectYear,
+                addNextYear,
+                selectedYear,
+                availableYears,
+                updateSettings,
+                hydrateRoot
+            } = useAppState();
+
+            const [cloudLinked, setCloudLinked] = useState(() => ghHasConfig());
+            useEffect(() => {
+                (async () => {
+                    if (!ghHasConfig()) return;
+                    const loaded = await ghLoadState();
+                    if (loaded) hydrateRoot(loaded);
+                })();
+            }, [hydrateRoot]);
+
+            const connectCloud = useCallback(async () => {
+                if (!ghConnectViaPrompt()) return;
+                setCloudLinked(true);
+                const loaded = await ghLoadState();
+                if (loaded) hydrateRoot(loaded);
+            }, [hydrateRoot]);
+            const syncCloud = useCallback(async () => {
+                const raw = localStorage.getItem('wowo-blip-office-visit-v2');
+                if (!raw) return;
+                await ghSaveState(JSON.parse(raw));
+            }, []);
+
+
+            return (
+                <div className="min-h-screen fd-bg-base">
+                    <Header isDark={isDark} onToggleTheme={toggleTheme} lang={lang} onToggleLang={toggleLang} t={t} onCloudConnect={connectCloud} cloudLinked={cloudLinked} onCloudSync={syncCloud} />
+                    <YearFilter 
+                        selectedYear={selectedYear}
+                        years={availableYears}
+                        onSelect={selectYear}
+                        onAddNext={addNextYear}
+                        t={t}
+                    />
+                    
+                    <main>
+                        <AnnualSummary calculations={calculations} t={t} />
+                        
+                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-3">
+                                <div className="flex-1">
+                                    <h2 className="text-xl font-semibold fd-text-strong">{t('quarters')}</h2>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <label className="fd-label fd-text-subtle" htmlFor="gbp-toggle">GBP → EUR</label>
+                                        <button
+                                            id="gbp-toggle"
+                                            onClick={() => updateSettings({ gbpMode: !state.settings.gbpMode })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${state.settings.gbpMode ? 'bg-blue-600' : 'bg-[var(--fd-bg-layer)]'}`}
+                                            aria-label="Toggle GBP mode"
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${state.settings.gbpMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                        <input
+                                            type="number"
+                                            step="0.0001"
+                                            min="0"
+                                            value={state.settings.gbpRate}
+                                            onChange={(e) => updateSettings({ gbpRate: Number(e.target.value || 0) || 0 })}
+                                            className="ml-2 w-28 fd-input border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            aria-label="GBP to EUR rate"
+                                        />
+                                        <span className="fd-text-subtle text-sm">£1 → €</span>
+                                    </div>
+                                </div>
+                            <div className="hidden md:flex items-center gap-3 md:justify-end"></div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <AnimatePresence>
+                                    {Object.entries(state.quarters).map(([quarterKey, quarter]) => (
+                                        <QuarterCard
+                                            key={quarterKey}
+                                            quarterKey={quarterKey}
+                                            quarter={quarter}
+                                            onToggle={toggleQuarter}
+                                            onChangeDetail={updateQuarterDetail}
+                                            budgetPerQuarter={state.budgetPerQuarter}
+                                            syncKey={selectedYear}
+                                            t={t}
+                                            gbpMode={state.settings.gbpMode}
+                                            gbpRate={state.settings.gbpRate || 1}
+                                        />
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                        </section>
+
+                        <FooterActions 
+                            onReset={resetAll}
+                            onExportCsv={exportToCSV}
+                            t={t}
+                        />
+                    </main>
+
+                    {/* Screen reader announcements */}
+                    <div 
+                        className="aria-live" 
+                        aria-live="polite" 
+                        aria-atomic="true"
+                    >
+                        {t('srTotalsPrefix')}: {t('totalAvailable')} {formatCurrency(calculations.totalAvailable)}, {t('totalSpent')} {formatCurrency(calculations.totalSpent)}, {t('annualBalance')} {formatCurrency(calculations.annualBalance)}
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app (React 18)
+        const rootEl = document.getElementById('root');
+        if (ReactDOM.createRoot) {
+            const root = ReactDOM.createRoot(rootEl);
+            root.render(<App />);
+        } else {
+            ReactDOM.render(<App />, rootEl);
+        }
+    </script>
+</body>
+</html>
