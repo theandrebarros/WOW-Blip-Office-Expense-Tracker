@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WOW, Quarter Office Visit Expense Tracker</title>
     <link rel="icon" href="https://www.blip.pt/images/favicon.png" type="image/png">
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@latest/dist/framer-motion.umd.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -340,8 +340,6 @@
             const saveRootState = useCallback((newRoot) => {
                 setRootState(newRoot);
                 localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(newRoot));
-                // best-effort sync to GitHub Gist if configured
-                ghSaveState(newRoot).catch(() => {});
             }, []);
 
             const currentYearKey = String(rootState.selectedYear);
@@ -643,7 +641,7 @@
         };
 
         // Annual Summary Component
-        const AnnualSummary = ({ calculations, t }) => (
+        const AnnualSummary = ({ calculations, state, t }) => (
             <motion.section 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -662,6 +660,9 @@
                                 <p className="text-2xl font-bold fd-text-success tabular-nums">
                                     {formatCurrency(calculations.totalAvailable)}
                                 </p>
+                                <p className="text-xs fd-text-subtle tabular-nums">
+                                    {formatGBP(calculations.totalAvailable * (state?.settings?.gbpRate || 1))}
+                                </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-success">€</span>
                         </div>
@@ -676,6 +677,9 @@
                                 <p className="text-sm fd-text-subtle mb-1">{t('totalSpent')}</p>
                                 <p className="text-2xl font-bold fd-text-warning tabular-nums">
                                     {formatCurrency(calculations.totalSpent)}
+                                </p>
+                                <p className="text-xs fd-text-subtle tabular-nums">
+                                    {formatGBP(calculations.totalSpent * (state?.settings?.gbpRate || 1))}
                                 </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-warning">⚠️</span>
@@ -699,6 +703,9 @@
                                         : 'fd-text-danger'
                                 }`}>
                                     {formatCurrency(calculations.annualBalance)}
+                                </p>
+                                <p className="text-xs fd-text-subtle tabular-nums">
+                                    {formatGBP(calculations.annualBalance * (state?.settings?.gbpRate || 1))}
                                 </p>
                             </div>
                             {calculations.annualBalance >= 0 ? (
@@ -726,7 +733,7 @@
                 const toDisplay = (eur) => {
                     const num = Number(eur ?? 0);
                     if (!num) return '';
-                    return (gbpMode ? (num / gbpRate) : num).toFixed(2);
+                    return (gbpMode ? (num * gbpRate) : num).toFixed(2);
                 };
                 if (officeRef.current && !isFocusedEl(officeRef)) {
                     officeRef.current.value = toDisplay(quarter.details?.flightToOffice);
@@ -756,7 +763,7 @@
                 })();
                 if (ref.current) ref.current.value = normalized;
                 if (validation.valid) {
-                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value * gbpRate) : validation.value);
+                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value / gbpRate) : validation.value);
                     onChangeDetail(quarterKey, field, eur.toFixed(2));
                 }
             };
@@ -833,7 +840,7 @@
                                     id={`office-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v/gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onBlur={() => handleBlur(officeRef, 'flightToOffice')}
                                     onFocus={handleFocus}
@@ -851,7 +858,7 @@
                                     id={`home-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v/gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onBlur={() => handleBlur(homeRef, 'flightHome')}
                                     onFocus={handleFocus}
@@ -896,7 +903,7 @@
                                     }`}>
                                         {formatCurrency(remaining)}
                                     </span>
-                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining / (gbpRate || 1))}</span>
+                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining * (gbpRate || 1))}</span>
                                 </div>
                             </div>
                         </div>
@@ -905,7 +912,7 @@
                             <span className="text-sm fd-text-subtle">{t('quarterTotal')}</span>
                             <div className="flex flex-col items-end">
                                 <span className="font-semibold tabular-nums fd-text-strong">{formatCurrency(quarter.spent)}</span>
-                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent / (gbpRate || 1))}</span>
+                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent * (gbpRate || 1))}</span>
                             </div>
                         </div>
 
@@ -1028,6 +1035,98 @@
             return true;
         };
 
+        // Background Exchange Rate Updater
+        const startBackgroundRateUpdater = () => {
+            const updateExchangeRate = async () => {
+                try {
+                    // Try multiple APIs for better reliability
+                    const apis = [
+                        {
+                            url: 'https://api.exchangerate.host/latest?base=EUR&symbols=GBP',
+                            parser: (data) => data.success && data.rates ? data.rates.GBP : null
+                        },
+                        {
+                            url: 'https://api.fxratesapi.com/latest?base=EUR&symbols=GBP',
+                            parser: (data) => data.rates ? data.rates.GBP : null
+                        },
+                        {
+                            url: 'https://api.exchangerate-api.com/v4/latest/EUR',
+                            parser: (data) => data.rates ? data.rates.GBP : null
+                        }
+                    ];
+                    
+                    for (const api of apis) {
+                        try {
+                            console.log('Background: Trying exchange rate API:', api.url);
+                            const response = await fetch(api.url);
+                            
+                            if (!response.ok) continue;
+                            
+                            const data = await response.json();
+                            const gbpRate = api.parser(data);
+                            
+                            if (gbpRate && gbpRate > 0 && gbpRate < 2) {
+                                // Update the rate in localStorage
+                                const currentState = JSON.parse(localStorage.getItem('wowo-blip-office-visit-v2') || '{}');
+                                if (currentState.years) {
+                                    Object.keys(currentState.years).forEach(yearKey => {
+                                        if (currentState.years[yearKey].settings) {
+                                            currentState.years[yearKey].settings.gbpRate = gbpRate;
+                                        }
+                                    });
+                                    localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(currentState));
+                                    console.log('Background: Updated EUR to GBP rate to:', gbpRate);
+                                }
+                                break; // Success, stop trying other APIs
+                            }
+                        } catch (apiError) {
+                            console.log('Background: API failed:', api.url, apiError);
+                            continue;
+                        }
+                    }
+                } catch (error) {
+                    console.log('Background: All exchange rate APIs failed:', error);
+                }
+            };
+            
+            // Update immediately
+            updateExchangeRate();
+            
+            // Then update every hour
+            const intervalId = setInterval(updateExchangeRate, 60 * 60 * 1000); // 1 hour
+            
+            // Also update every 10 minutes as a fallback
+            const fallbackIntervalId = setInterval(async () => {
+                try {
+                    const response = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=GBP');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.rates && data.rates.GBP) {
+                            const gbpRate = data.rates.GBP;
+                            const currentState = JSON.parse(localStorage.getItem('wowo-blip-office-visit-v2') || '{}');
+                            if (currentState.years) {
+                                Object.keys(currentState.years).forEach(yearKey => {
+                                    if (currentState.years[yearKey].settings) {
+                                        currentState.years[yearKey].settings.gbpRate = gbpRate;
+                                    }
+                                });
+                                localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(currentState));
+                                console.log('Background fallback: Updated rate to:', gbpRate);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('Background fallback failed:', error);
+                }
+            }, 10 * 60 * 1000); // 10 minutes
+            
+            // Return cleanup function
+            return () => {
+                clearInterval(intervalId);
+                clearInterval(fallbackIntervalId);
+            };
+        };
+
         // Main App Component
         const App = () => {
             const [isDark, setIsDark] = useState(() => {
@@ -1091,6 +1190,11 @@
 
             const [cloudLinked, setCloudLinked] = useState(false);
             
+            useEffect(() => {
+                const cleanup = startBackgroundRateUpdater();
+                return cleanup;
+            }, []);
+
             useEffect(() => {
                 (async () => {
                     console.log('Attempting to connect to cloud...');
@@ -1181,14 +1285,14 @@
                     />
                     
                     <main>
-                        <AnnualSummary calculations={calculations} t={t} />
+                        <AnnualSummary calculations={calculations} state={state} t={t} />
                         
                         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                             <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-3">
                                 <div className="flex-1">
                                     <h2 className="text-xl font-semibold fd-text-strong">{t('quarters')}</h2>
                                     <div className="mt-2 flex items-center gap-3">
-                                        <label className="fd-label fd-text-subtle" htmlFor="gbp-toggle">GBP → EUR</label>
+                                        <label className="fd-label fd-text-subtle" htmlFor="gbp-toggle">EUR → GBP</label>
                                         <button
                                             id="gbp-toggle"
                                             onClick={() => updateSettings({ gbpMode: !state.settings.gbpMode })}
@@ -1204,9 +1308,38 @@
                                             value={state.settings.gbpRate}
                                             onChange={(e) => updateSettings({ gbpRate: Number(e.target.value || 0) || 0 })}
                                             className="ml-2 w-28 fd-input border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            aria-label="GBP to EUR rate"
+                                            aria-label="EUR to GBP rate"
+                                            title={`EUR to GBP rate (auto-updated every hour)`}
                                         />
-                                        <span className="fd-text-subtle text-sm">£1 → €</span>
+                                        <button
+                                            onClick={() => {
+                                                // Show a dialog with current rate and option to update
+                                                const currentRate = state.settings.gbpRate || 0.85;
+                                                const newRate = prompt(
+                                                    `Current EUR to GBP rate: ${currentRate}\n\n` +
+                                                    `Enter new rate (e.g., 0.85 for €1 = £0.85):\n\n` +
+                                                    `Common rates:\n` +
+                                                    `• 0.85 - Conservative estimate\n` +
+                                                    `• 0.87 - Recent average\n` +
+                                                    `• 0.90 - Higher estimate`,
+                                                    currentRate.toString()
+                                                );
+                                                
+                                                if (newRate !== null && newRate !== '') {
+                                                    const rate = parseFloat(newRate);
+                                                    if (!isNaN(rate) && rate > 0 && rate < 2) {
+                                                        updateSettings({ gbpRate: rate });
+                                                        alert(`Rate updated to: €1 = £${rate.toFixed(4)}`);
+                                                    } else {
+                                                        alert('Please enter a valid rate between 0 and 2');
+                                                    }
+                                                }
+                                            }}
+                                            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors h-[34px]"
+                                            title="Update exchange rate manually"
+                                        >
+                                            Update Rate
+                                        </button>
                                     </div>
                                 </div>
                             <div className="hidden md:flex items-center gap-3 md:justify-end"></div>
