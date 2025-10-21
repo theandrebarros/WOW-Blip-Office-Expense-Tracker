@@ -825,21 +825,36 @@
             const hotelRef = React.useRef(null);
 
             useEffect(() => {
-                const isFocusedEl = (ref) => ref && ref.current && document.activeElement === ref.current;
+                const isFocusedEl = (ref) => {
+                    if (!ref || !ref.current) return false;
+                    const activeEl = document.activeElement;
+                    return activeEl === ref.current || 
+                           (activeEl && ref.current.contains && ref.current.contains(activeEl));
+                };
+                
                 const toDisplay = (eur) => {
                     const num = Number(eur ?? 0);
                     if (!num) return '';
                     return (gbpMode ? (num * gbpRate) : num).toFixed(2);
                 };
-                if (officeRef.current && !isFocusedEl(officeRef)) {
-                    officeRef.current.value = toDisplay(quarter.details?.flightToOffice);
-                }
-                if (homeRef.current && !isFocusedEl(homeRef)) {
-                    homeRef.current.value = toDisplay(quarter.details?.flightHome);
-                }
-                if (hotelRef.current && !isFocusedEl(hotelRef)) {
-                    const num = Number(quarter.details?.hotel ?? 0);
-                    hotelRef.current.value = num ? num.toFixed(2) : '';
+                
+                // Only update if not focused and not being typed on mobile
+                const isInputFocused = isFocusedEl(officeRef) || isFocusedEl(homeRef) || isFocusedEl(hotelRef);
+                const isMobileTyping = (officeRef.current?.getAttribute('data-mobile-typing') === 'true') ||
+                                     (homeRef.current?.getAttribute('data-mobile-typing') === 'true') ||
+                                     (hotelRef.current?.getAttribute('data-mobile-typing') === 'true');
+                
+                if (!isInputFocused && !isMobileTyping) {
+                    if (officeRef.current) {
+                        officeRef.current.value = toDisplay(quarter.details?.flightToOffice);
+                    }
+                    if (homeRef.current) {
+                        homeRef.current.value = toDisplay(quarter.details?.flightHome);
+                    }
+                    if (hotelRef.current) {
+                        const num = Number(quarter.details?.hotel ?? 0);
+                        hotelRef.current.value = num ? num.toFixed(2) : '';
+                    }
                 }
             }, [syncKey, quarter.details?.flightToOffice, quarter.details?.flightHome, quarter.details?.hotel, gbpMode, gbpRate]);
 
@@ -864,8 +879,15 @@
                 }
             };
 
-            const handleFocus = () => {};
-            const handleBlur = (ref, field) => { commitField(ref, field); };
+            const handleFocus = () => {
+                // Prevent value updates while focused on mobile
+            };
+            const handleBlur = (ref, field) => { 
+                // Add small delay for mobile to ensure value is captured
+                setTimeout(() => {
+                    commitField(ref, field);
+                }, 100);
+            };
             const handleEnter = (e, ref, field) => {
                 if (e.key !== 'Enter') return;
                 e.preventDefault();
@@ -875,6 +897,20 @@
                     commitField(ref, field);
                     target.blur();
                 }, 0);
+            };
+            
+            // Mobile-specific input handling
+            const handleInput = (e) => {
+                // Prevent the useEffect from overwriting while typing on mobile
+                e.target.setAttribute('data-mobile-typing', 'true');
+            };
+            
+            const handleInputEnd = (ref, field) => {
+                // Clear mobile typing flag and commit
+                if (ref.current) {
+                    ref.current.removeAttribute('data-mobile-typing');
+                }
+                commitField(ref, field);
             };
 
             return (
@@ -938,7 +974,8 @@
                                     inputMode="decimal"
                                     defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
-                                    onBlur={() => handleBlur(officeRef, 'flightToOffice')}
+                                    onInput={handleInput}
+                                    onBlur={() => handleInputEnd(officeRef, 'flightToOffice')}
                                     onFocus={handleFocus}
                                     onKeyDown={(e) => handleEnter(e, officeRef, 'flightToOffice')}
                                     onKeyUp={(e) => handleEnter(e, officeRef, 'flightToOffice')}
@@ -956,7 +993,8 @@
                                     inputMode="decimal"
                                     defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
-                                    onBlur={() => handleBlur(homeRef, 'flightHome')}
+                                    onInput={handleInput}
+                                    onBlur={() => handleInputEnd(homeRef, 'flightHome')}
                                     onFocus={handleFocus}
                                     onKeyDown={(e) => handleEnter(e, homeRef, 'flightHome')}
                                     onKeyUp={(e) => handleEnter(e, homeRef, 'flightHome')}
@@ -974,7 +1012,8 @@
                                     inputMode="decimal"
                                     defaultValue={(() => { const v = Number(quarter.details?.hotel ?? 0); return v ? v.toFixed(2) : '' })()}
                                     onChange={handleChange}
-                                    onBlur={() => handleBlur(hotelRef, 'hotel')}
+                                    onInput={handleInput}
+                                    onBlur={() => handleInputEnd(hotelRef, 'hotel')}
                                     onFocus={handleFocus}
                                     onKeyDown={(e) => handleEnter(e, hotelRef, 'hotel')}
                                     onKeyUp={(e) => handleEnter(e, hotelRef, 'hotel')}
