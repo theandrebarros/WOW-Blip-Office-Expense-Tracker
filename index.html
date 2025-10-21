@@ -519,7 +519,8 @@
             const hydrateRoot = useCallback((newRootState) => {
                 console.log('Hydrating root state with:', newRootState);
                 setRootState(newRootState);
-                localStorage.setItem('wowo-blip-office-visit-v2', JSON.stringify(newRootState));
+                const userId = getCurrentUserId();
+                localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRootState));
             }, []);
 
             return {
@@ -1383,7 +1384,8 @@
             }, [hydrateRoot]);
             
             const syncCloud = useCallback(async () => {
-                const raw = localStorage.getItem('wowo-blip-office-visit-v2');
+                const userId = getCurrentUserId();
+                const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                 if (!raw) return;
                 await cloudSaveState(JSON.parse(raw));
             }, []);
@@ -1399,7 +1401,8 @@
                 
                 console.log('Setting up auto-save timer...');
                 const timeoutId = setTimeout(async () => {
-                    const raw = localStorage.getItem('wowo-blip-office-visit-v2');
+                    const userId = getCurrentUserId();
+                    const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                     console.log('Raw localStorage data:', raw);
                     
                     if (raw) {
