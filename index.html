@@ -10,6 +10,10 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@latest/dist/framer-motion.umd.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
@@ -165,6 +169,25 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useCallback } = React;
+        
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyANFnCB3u_NmOuJScEGMPLFQemcpqLGJwA",
+            authDomain: "wowo-blip-office.firebaseapp.com",
+            projectId: "wowo-blip-office",
+            storageBucket: "wowo-blip-office.firebasestorage.app",
+            messagingSenderId: "18582872789",
+            appId: "1:18582872789:web:e1e43c32e2791c9a4bf85c",
+            measurementId: "G-D5FYVFF90H"
+        };
+        
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         // Safe framer-motion fallback if UMD global is unavailable
         const fm = window.framerMotion;
         const motionShim = new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
@@ -315,36 +338,32 @@
             }
         };
 
-        // Multi-User System
-        const generateUserId = () => {
-            return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-        };
-
+        // Firebase Authentication System
         const getCurrentUserId = () => {
-            let userId = localStorage.getItem('wowo-user-id');
-            if (!userId) {
-                userId = generateUserId();
-                localStorage.setItem('wowo-user-id', userId);
-            }
-            return userId;
+            const user = auth.currentUser;
+            return user ? user.uid : null;
         };
 
         const getCurrentUsername = () => {
-            return localStorage.getItem('wowo-username') || getCurrentUserId().split('_')[1];
+            const user = auth.currentUser;
+            return user ? (user.displayName || user.email.split('@')[0]) : 'Guest';
         };
 
-        const setCurrentUsername = (username) => {
-            localStorage.setItem('wowo-username', username);
+        const getCurrentUserEmail = () => {
+            const user = auth.currentUser;
+            return user ? user.email : null;
         };
 
-        const switchUser = (newUserId) => {
-            localStorage.setItem('wowo-user-id', newUserId);
-            window.location.reload(); // Reload to apply new user data
-        };
-
-        const createNewUser = () => {
-            const newUserId = generateUserId();
-            switchUser(newUserId);
+        const signOut = async () => {
+            try {
+                await auth.signOut();
+                // Clear local storage
+                localStorage.clear();
+                // Reload to reset app state
+                window.location.reload();
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
         };
 
         // Custom hook for app state
@@ -352,22 +371,22 @@
             const [rootState, setRootState] = useState(() => {
                 try {
                     const userId = getCurrentUserId();
-                    const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                    if (savedV2) return JSON.parse(savedV2);
-                    const legacy = localStorage.getItem('wowo-blip-office-visit');
-                    if (legacy) {
-                        const legacyState = JSON.parse(legacy);
-                        return {
-                            selectedYear: getDefaultSelectedYear(),
-                            years: { [String(getDefaultSelectedYear())]: legacyState }
-                        };
+                    if (userId) {
+                        const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                        if (savedV2) return JSON.parse(savedV2);
                     }
+                    // If no user or no saved data, return clean initial state
+                    const initialYear = getDefaultSelectedYear();
+                    const initialYears = {};
+                    initialYears[String(initialYear)] = createInitialYearState();
+                    initialYears[String(initialYear + 1)] = createInitialYearState();
+                    return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
                 } catch {}
                 const initialYear = getDefaultSelectedYear();
                 const initialYears = {};
                 initialYears[String(initialYear)] = createInitialYearState();
                 initialYears[String(initialYear + 1)] = createInitialYearState();
-                return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 1.17 } };
+                return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
             });
 
             const saveRootState = useCallback((newRoot) => {
@@ -396,7 +415,7 @@
                 },
                 settings: {
                     gbpMode: Boolean(s?.settings?.gbpMode ?? false),
-                    gbpRate: Number(s?.settings?.gbpRate ?? 1.17)
+                    gbpRate: Number(s?.settings?.gbpRate ?? 0.85)
                 }
             });
             const rawState = rootState.years[currentYearKey] || createInitialYearState();
@@ -551,10 +570,10 @@
         };
 
         // Header Component
-        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync }) => {
+        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync, user, onSignOut, onShowAuthModal }) => {
             const [showUserMenu, setShowUserMenu] = useState(false);
-            const currentUserId = getCurrentUserId();
             const currentUsername = getCurrentUsername();
+            const currentUserEmail = getCurrentUserEmail();
             
             return (
             <motion.header 
@@ -574,78 +593,70 @@
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             {/* User Menu */}
                             <div className="relative">
-                                <button
-                                    onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    aria-label="User menu"
-                                    title={`Current user: ${currentUsername}`}
-                                >
-                                    <span className="text-sm font-semibold">👤 {currentUsername}</span>
-                                </button>
-                                
-                                {showUserMenu && (
-                                    <div className="absolute right-0 top-full mt-2 w-48 fd-bg-surface border fd-border-default rounded-lg shadow-lg z-50">
-                                        <div className="p-2">
-                                            <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default">
-                                                Current User: {currentUsername}
+                                {user ? (
+                                    <>
+                                        <button
+                                            onClick={() => setShowUserMenu(!showUserMenu)}
+                                            className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            aria-label="User menu"
+                                            title={`Signed in as: ${currentUsername}`}
+                                        >
+                                            <span className="text-sm font-semibold">👤 {currentUsername}</span>
+                                        </button>
+                                        
+                                        {showUserMenu && (
+                                            <div className="absolute right-0 top-full mt-2 w-64 fd-bg-surface border fd-border-default rounded-lg shadow-lg z-50">
+                                                <div className="p-2">
+                                                    <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default">
+                                                        <div className="font-semibold">{currentUsername}</div>
+                                                        <div className="text-xs">{currentUserEmail}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            onSignOut();
+                                                            setShowUserMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                                    >
+                                                        🚪 Sign Out
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={() => {
-                                                    const newUsername = prompt('Enter new username:', currentUsername);
-                                                    if (newUsername && newUsername.trim()) {
-                                                        setCurrentUsername(newUsername.trim());
-                                                        setShowUserMenu(false);
-                                                        window.location.reload(); // Reload to update UI
-                                                    }
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
-                                            >
-                                                ✏️ Change Username
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    createNewUser();
-                                                    setShowUserMenu(false);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
-                                            >
-                                                + Create New User
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    const newUserId = prompt('Enter User ID to switch to:');
-                                                    if (newUserId) {
-                                                        switchUser(newUserId);
-                                                    }
-                                                    setShowUserMenu(false);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
-                                            >
-                                                🔄 Switch User
-                                            </button>
-                                        </div>
-                                    </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={onShowAuthModal}
+                                        className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        aria-label="Sign in"
+                                        title="Sign in to save your data"
+                                    >
+                                        <span className="text-sm font-semibold">🔐 Sign In</span>
+                                    </button>
                                 )}
                             </div>
                             
-                            <button
-                                onClick={onCloudConnect}
-                                className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                                aria-label="Connect Cloud"
-                                title={cloudLinked ? 'Cloud Connected' : 'Connect Cloud'}
-                            >
-                                <span className="text-sm font-semibold">{cloudLinked ? 'Cloud ✓' : 'Connect Cloud'}</span>
-                            </button>
-                            {cloudLinked && (
+                            {/* Cloud and Sync buttons hidden - auto-sync runs in background */}
+                            <div className="hidden">
                                 <button
-                                    onClick={onCloudSync}
-                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    aria-label="Sync now"
-                                    title="Sync now"
+                                    onClick={onCloudConnect}
+                                    className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                    aria-label="Connect Cloud"
+                                    title={cloudLinked ? 'Cloud Connected' : 'Connect Cloud'}
                                 >
-                                    <span className="text-sm font-semibold">Sync</span>
+                                    <span className="text-sm font-semibold">{cloudLinked ? 'Cloud ✓' : 'Connect Cloud'}</span>
                                 </button>
-                            )}
+                                {cloudLinked && (
+                                    <button
+                                        onClick={onCloudSync}
+                                        className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        aria-label="Sync now"
+                                        title="Sync now"
+                                    >
+                                        <span className="text-sm font-semibold">Sync</span>
+                                    </button>
+                                )}
+                            </div>
                             <button
                                 onClick={onToggleLang}
                                 className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -758,7 +769,7 @@
                                     {formatCurrency(calculations.totalAvailable)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.totalAvailable * (state?.settings?.gbpRate || 1))}
+                                    {formatGBP(calculations.totalAvailable / (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-success">€</span>
@@ -776,7 +787,7 @@
                                     {formatCurrency(calculations.totalSpent)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.totalSpent * (state?.settings?.gbpRate || 1))}
+                                    {formatGBP(calculations.totalSpent / (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-warning">⚠️</span>
@@ -802,7 +813,7 @@
                                     {formatCurrency(calculations.annualBalance)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.annualBalance * (state?.settings?.gbpRate || 1))}
+                                    {formatGBP(calculations.annualBalance / (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             {calculations.annualBalance >= 0 ? (
@@ -836,7 +847,7 @@
                 const toDisplay = (eur) => {
                     const num = Number(eur ?? 0);
                     if (!num) return '';
-                    return (gbpMode ? (num * gbpRate) : num).toFixed(2);
+                    return (gbpMode ? (num / gbpRate) : num).toFixed(2);
                 };
                 
                 // Only update if not focused and not being typed on mobile
@@ -871,11 +882,11 @@
                     if (field === 'hotel') {
                         return validation.valid ? validation.value.toFixed(2) : (current ? current.toFixed(2) : '');
                     }
-                    return validation.valid ? validation.value.toFixed(2) : (current ? (gbpMode ? (current / gbpRate).toFixed(2) : current.toFixed(2)) : '');
+                    return validation.valid ? validation.value.toFixed(2) : (current ? (gbpMode ? (current * gbpRate).toFixed(2) : current.toFixed(2)) : '');
                 })();
                 if (ref.current) ref.current.value = normalized;
                 if (validation.valid) {
-                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value / gbpRate) : validation.value);
+                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value * gbpRate) : validation.value);
                     onChangeDetail(quarterKey, field, eur.toFixed(2));
                 }
             };
@@ -973,7 +984,7 @@
                                     id={`office-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v / gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onInput={handleInput}
                                     onBlur={() => handleInputEnd(officeRef, 'flightToOffice')}
@@ -992,7 +1003,7 @@
                                     id={`home-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v / gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onInput={handleInput}
                                     onBlur={() => handleInputEnd(homeRef, 'flightHome')}
@@ -1039,7 +1050,7 @@
                                     }`}>
                                         {formatCurrency(remaining)}
                                     </span>
-                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining * (gbpRate || 1))}</span>
+                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining / (gbpRate || 0.85))}</span>
                                 </div>
                             </div>
                         </div>
@@ -1048,7 +1059,7 @@
                             <span className="text-sm fd-text-subtle">{t('quarterTotal')}</span>
                             <div className="flex flex-col items-end">
                                 <span className="font-semibold tabular-nums fd-text-strong">{formatCurrency(quarter.spent)}</span>
-                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent * (gbpRate || 1))}</span>
+                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent / (gbpRate || 0.85))}</span>
                             </div>
                         </div>
 
@@ -1104,95 +1115,59 @@
             </motion.footer>
         );
 
-        // JSONBin.io Cloud Storage (Simple & Free)
-        const JSONBIN_API_KEY = '$2b$10$zAgjj3rWkgPIBGsGvpRQz.U5Y/wnRdI0nnMa65lezq./deV8K6g/e';
-        const JSONBIN_BIN_ID = '68f66053d0ea881f40aebd1b';
-        
-        const cloudHasConfig = () => {
-            return JSONBIN_API_KEY !== 'YOUR_JSONBIN_API_KEY' && JSONBIN_BIN_ID !== 'YOUR_BIN_ID';
-        };
-        
+        // Firebase Firestore Cloud Storage
         const cloudLoadState = async () => {
-            if (!cloudHasConfig()) {
-                console.log('JSONBin not configured');
+            const userId = getCurrentUserId();
+            if (!userId) {
+                console.log('No user ID for cloud load');
                 return null;
             }
             
             try {
-                console.log('Loading state from JSONBin...');
-                const userId = getCurrentUserId();
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-                    headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
-                    }
-                });
+                console.log('Loading state from Firestore...');
+                const docRef = db.collection('userData').doc(userId);
+                const doc = await docRef.get();
                 
-                if (!response.ok) {
-                    console.log('Failed to load from JSONBin:', response.status);
+                if (doc.exists) {
+                    const data = doc.data();
+                    console.log('Loaded state from Firestore:', data);
+                    return data;
+                } else {
+                    console.log('No data found in Firestore for user:', userId);
                     return null;
                 }
-                
-                const result = await response.json();
-                console.log('Loaded state:', result.record);
-                
-                // Return user-specific data if it exists
-                if (result.record && result.record[userId]) {
-                    return result.record[userId];
-                }
-                return null;
             } catch (error) {
-                console.error('Error loading from JSONBin:', error);
+                console.error('Error loading from Firestore:', error);
                 return null;
             }
         };
         
         const cloudSaveState = async (data) => {
-            if (!cloudHasConfig()) {
-                console.log('JSONBin not configured for save');
+            const userId = getCurrentUserId();
+            if (!userId) {
+                console.log('No user ID for cloud save');
                 return false;
             }
             
             try {
-                console.log('Saving state to JSONBin:', data);
-                const userId = getCurrentUserId();
-                
-                // First, load existing data to preserve other users
-                let allUsersData = {};
-                try {
-                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-                        headers: { 'X-Master-Key': JSONBIN_API_KEY }
-                    });
-                    if (response.ok) {
-                        const result = await response.json();
-                        allUsersData = result.record || {};
-                    }
-                } catch (e) {
-                    console.log('No existing data found, starting fresh');
-                }
-                
-                // Update current user's data
-                allUsersData[userId] = data;
-                
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSONBIN_API_KEY
-                    },
-                    body: JSON.stringify(allUsersData)
+                console.log('Saving state to Firestore:', data);
+                const docRef = db.collection('userData').doc(userId);
+                await docRef.set({
+                    ...data,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId: userId
                 });
                 
-                const success = response.ok;
-                console.log('Save result:', success);
-                return success;
+                console.log('Successfully saved to Firestore');
+                return true;
             } catch (error) {
-                console.error('Error saving to JSONBin:', error);
+                console.error('Error saving to Firestore:', error);
                 return false;
             }
         };
         
         const cloudConnectViaPrompt = async () => {
-            // Since we have the credentials configured, just return true to connect
+            // Firebase connection is handled by auth state
             return true;
         };
 
@@ -1288,8 +1263,192 @@
             };
         };
 
+        // Authentication Modal Component
+        const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            
+            // Use refs for form inputs
+            const emailRef = React.useRef(null);
+            const passwordRef = React.useRef(null);
+            const confirmPasswordRef = React.useRef(null);
+            const displayNameRef = React.useRef(null);
+
+            const resetForm = () => {
+                if (emailRef.current) emailRef.current.value = '';
+                if (passwordRef.current) passwordRef.current.value = '';
+                if (confirmPasswordRef.current) confirmPasswordRef.current.value = '';
+                if (displayNameRef.current) displayNameRef.current.value = '';
+                setError('');
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+
+                try {
+                    const email = emailRef.current?.value || '';
+                    const password = passwordRef.current?.value || '';
+                    const confirmPassword = confirmPasswordRef.current?.value || '';
+                    const displayName = displayNameRef.current?.value || '';
+
+                    if (isLogin) {
+                        // Login
+                        await auth.signInWithEmailAndPassword(email, password);
+                    } else {
+                        // Sign up
+                        if (password !== confirmPassword) {
+                            throw new Error('Passwords do not match');
+                        }
+                        if (password.length < 6) {
+                            throw new Error('Password must be at least 6 characters');
+                        }
+                        
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        await userCredential.user.updateProfile({
+                            displayName: displayName
+                        });
+                    }
+                    
+                    resetForm();
+                    onAuthSuccess();
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+
+            if (!isOpen) return null;
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                >
+                    <div className="fixed inset-0 bg-black bg-opacity-90" onClick={onClose} />
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="relative w-full max-w-md fd-bg-surface rounded-2xl shadow-xl border fd-border-default"
+                    >
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold fd-text-strong">
+                                    {isLogin ? 'Sign In' : 'Sign Up'}
+                                </h2>
+                                <button
+                                    onClick={onClose}
+                                    className="p-2 fd-text-subtle hover:fd-hover-surface rounded-lg transition-colors"
+                                    aria-label="Close modal"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {error && (
+                                <div className="mb-4 p-3 fd-alert fd-alert-danger rounded-lg">
+                                    <div className="fd-alert-desc text-sm">{error}</div>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                {!isLogin && (
+                                    <div>
+                                        <label className="block text-sm font-medium fd-text-strong mb-2">
+                                            Full Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            ref={displayNameRef}
+                                            required={!isLogin}
+                                            className="w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Enter your full name"
+                                        />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium fd-text-strong mb-2">
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        ref={emailRef}
+                                        required
+                                        className="w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Enter your email"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium fd-text-strong mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        ref={passwordRef}
+                                        required
+                                        className="w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Enter your password"
+                                    />
+                                </div>
+
+                                {!isLogin && (
+                                    <div>
+                                        <label className="block text-sm font-medium fd-text-strong mb-2">
+                                            Confirm Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            ref={confirmPasswordRef}
+                                            required={!isLogin}
+                                            className="w-full px-3 py-2 rounded-lg border fd-input focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="Confirm your password"
+                                        />
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Sign Up')}
+                                </button>
+                            </form>
+
+
+                            <div className="mt-6 text-center">
+                                <button
+                                    onClick={() => {
+                                        setIsLogin(!isLogin);
+                                        resetForm();
+                                    }}
+                                    className="text-sm fd-text-subtle hover:fd-text-default transition-colors"
+                                >
+                                    {isLogin 
+                                        ? "Don't have an account? Sign up" 
+                                        : "Already have an account? Sign in"
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            );
+        };
+
         // Main App Component
         const App = () => {
+            const [user, setUser] = useState(null);
+            const [showAuthModal, setShowAuthModal] = useState(false);
             const [isDark, setIsDark] = useState(() => {
                 try {
                     const saved = localStorage.getItem('fd-theme-mode');
@@ -1351,6 +1510,21 @@
 
             const [cloudLinked, setCloudLinked] = useState(false);
             
+            // Firebase Authentication State Listener
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    setUser(user);
+                    if (user) {
+                        console.log('User signed in:', user.email);
+                        setCloudLinked(true);
+                    } else {
+                        console.log('User signed out');
+                        setCloudLinked(false);
+                    }
+                });
+                return () => unsubscribe();
+            }, []);
+            
             useEffect(() => {
                 const cleanup = startBackgroundRateUpdater();
                 return cleanup;
@@ -1375,6 +1549,20 @@
                 })();
             }, [hydrateRoot]);
 
+            // Authentication handlers
+            const handleShowAuthModal = useCallback(() => {
+                setShowAuthModal(true);
+            }, []);
+
+            const handleAuthSuccess = useCallback(() => {
+                setShowAuthModal(false);
+                // Cloud sync will be handled by the auth state listener
+            }, []);
+
+            const handleSignOut = useCallback(async () => {
+                await signOut();
+            }, []);
+
             const connectCloud = useCallback(async () => {
                 if (await cloudConnectViaPrompt()) {
                     setCloudLinked(true);
@@ -1385,6 +1573,7 @@
             
             const syncCloud = useCallback(async () => {
                 const userId = getCurrentUserId();
+                if (!userId) return;
                 const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                 if (!raw) return;
                 await cloudSaveState(JSON.parse(raw));
@@ -1438,7 +1627,19 @@
 
             return (
                 <div className="min-h-screen fd-bg-base">
-                    <Header isDark={isDark} onToggleTheme={toggleTheme} lang={lang} onToggleLang={toggleLang} t={t} onCloudConnect={connectCloud} cloudLinked={cloudLinked} onCloudSync={syncCloud} />
+                    <Header 
+                        isDark={isDark} 
+                        onToggleTheme={toggleTheme} 
+                        lang={lang} 
+                        onToggleLang={toggleLang} 
+                        t={t} 
+                        onCloudConnect={connectCloud} 
+                        cloudLinked={cloudLinked} 
+                        onCloudSync={syncCloud}
+                        user={user}
+                        onSignOut={handleSignOut}
+                        onShowAuthModal={handleShowAuthModal}
+                    />
                     <YearFilter 
                         selectedYear={selectedYear}
                         years={availableYears}
@@ -1542,6 +1743,13 @@
                     >
                         {t('srTotalsPrefix')}: {t('totalAvailable')} {formatCurrency(calculations.totalAvailable)}, {t('totalSpent')} {formatCurrency(calculations.totalSpent)}, {t('annualBalance')} {formatCurrency(calculations.annualBalance)}
                     </div>
+
+                    {/* Authentication Modal */}
+                    <AuthModal 
+                        isOpen={showAuthModal}
+                        onClose={() => setShowAuthModal(false)}
+                        onAuthSuccess={handleAuthSuccess}
+                    />
                 </div>
             );
         };
