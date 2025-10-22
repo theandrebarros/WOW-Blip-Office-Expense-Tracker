@@ -880,7 +880,7 @@
                 const toDisplay = (eur) => {
                     const num = Number(eur ?? 0);
                     if (!num) return '';
-                    return (gbpMode ? (num / gbpRate) : num).toFixed(2);
+                    return (gbpMode ? (num * gbpRate) : num).toFixed(2);
                 };
                 
                 // Only update if not focused and not being typed on mobile
@@ -1017,7 +1017,7 @@
                                     id={`office-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v / gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightToOffice ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onInput={handleInput}
                                     onBlur={() => handleInputEnd(officeRef, 'flightToOffice')}
@@ -1036,7 +1036,7 @@
                                     id={`home-${quarterKey}`}
                                     type="text"
                                     inputMode="decimal"
-                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v / gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
+                                    defaultValue={(() => { const v = Number(quarter.details?.flightHome ?? 0); return v ? (gbpMode ? (v * gbpRate).toFixed(2) : v.toFixed(2)) : '' })()}
                                     onChange={handleChange}
                                     onInput={handleInput}
                                     onBlur={() => handleInputEnd(homeRef, 'flightHome')}
