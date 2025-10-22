@@ -171,6 +171,67 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useCallback } = React;
         
+        // Debug utility - set to false for production
+        const DEBUG_MODE = true; // Set to false to disable debug logging
+        const debug = {
+            log: (...args) => DEBUG_MODE && console.log(...args),
+            error: (...args) => console.error(...args), // Always log errors
+            warn: (...args) => DEBUG_MODE && console.warn(...args),
+            info: (...args) => DEBUG_MODE && console.info(...args),
+            time: (label) => DEBUG_MODE && console.time(label),
+            timeEnd: (label) => DEBUG_MODE && console.timeEnd(label)
+        };
+        
+        // Performance monitoring
+        const perfMonitor = {
+            marks: {},
+            start: (label) => {
+                if (DEBUG_MODE) {
+                    perfMonitor.marks[label] = performance.now();
+                }
+            },
+            end: (label) => {
+                if (DEBUG_MODE && perfMonitor.marks[label]) {
+                    const duration = performance.now() - perfMonitor.marks[label];
+                    debug.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+                    delete perfMonitor.marks[label];
+                }
+            }
+        };
+        
+        // Constants
+        const CONSTANTS = {
+            // Storage keys
+            STORAGE_KEY_PREFIX: 'wowo-blip-office-visit-v2',
+            THEME_STORAGE_KEY: 'fd-theme-mode',
+            LANG_STORAGE_KEY: 'fd-lang',
+            
+            // Sync intervals
+            AUTO_SAVE_DELAY: 1000, // 1 second
+            PERIODIC_SYNC_INTERVAL: 120000, // 2 minutes
+            
+            // Toast durations
+            TOAST_DURATION_SHORT: 2000,
+            TOAST_DURATION_NORMAL: 3000,
+            TOAST_DURATION_LONG: 5000,
+            
+            // Input delays
+            INPUT_DEBOUNCE_DELAY: 300,
+            MOBILE_TYPING_CLEAR_DELAY: 2000,
+            LAST_USER_INPUT_CLEAR_DELAY: 5000,
+            
+            // Quarters
+            QUARTERS: ['Q1', 'Q2', 'Q3', 'Q4'],
+            
+            // Default values
+            DEFAULT_BUDGET_PER_QUARTER: 380,
+            DEFAULT_GBP_RATE: 0.85,
+            
+            // Validation
+            MAX_AMOUNT: 999999.99,
+            MIN_AMOUNT: 0
+        };
+        
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyANFnCB3u_NmOuJScEGMPLFQemcpqLGJwA",
@@ -192,10 +253,10 @@
             auth = firebase.auth();
             db = firebase.firestore();
             storage = firebase.storage();
-            console.log('✅ Firebase initialized successfully');
-            console.log('🔧 Firebase services:', { auth: !!auth, db: !!db, storage: !!storage });
+            debug.log('✅ Firebase initialized successfully');
+            debug.log('🔧 Firebase services:', { auth: !!auth, db: !!db, storage: !!storage });
         } catch (error) {
-            console.error('❌ Firebase initialization error:', error);
+            debug.error('❌ Firebase initialization error:', error);
             // Keep null values
             auth = null;
             db = null;
@@ -728,7 +789,7 @@
         };
 
         // Header Component
-        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync, user, onSignOut, onShowAuthModal, onShowSettings, userProfilePicture }) => {
+        const Header = React.memo(({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync, user, onSignOut, onShowAuthModal, onShowSettings, userProfilePicture }) => {
             const [showUserMenu, setShowUserMenu] = useState(false);
             const currentUsername = getCurrentUsername();
             const currentUserEmail = getCurrentUserEmail();
@@ -831,16 +892,7 @@
                             {/* Manual sync button for testing */}
                             {user && (
                                 <button
-                                    onClick={async () => {
-                                        console.log('🔄 Manual sync triggered');
-                                        const loaded = await cloudLoadState();
-                                        if (loaded) {
-                                            console.log('📥 Manual sync: Loaded data from cloud');
-                                            hydrateRoot(loaded);
-                                        } else {
-                                            console.log('📥 Manual sync: No data found in cloud');
-                                        }
-                                    }}
+                                    onClick={onCloudSync}
                                     className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     title="Manual sync from cloud"
                                 >
@@ -890,8 +942,8 @@
                     </div>
                 </div>
             </motion.header>
-            );
-        };
+        );
+        });
 
         // Year Filter Component
         const YearFilter = ({ selectedYear, years, onSelect, onAddNext, t }) => {
@@ -1040,7 +1092,7 @@
         );
 
         // Quarter Card Component
-        const QuarterCard = ({ quarterKey, quarter, onToggle, onChangeDetail, budgetPerQuarter, syncKey, t, gbpMode, gbpRate }) => {
+        const QuarterCard = React.memo(({ quarterKey, quarter, onToggle, onChangeDetail, budgetPerQuarter, syncKey, t, gbpMode, gbpRate }) => {
             const remaining = budgetPerQuarter - quarter.spent;
             const isOverBudget = remaining < 0;
             const isWithinBudget = remaining >= 0 && quarter.spent > 0;
@@ -1354,7 +1406,17 @@
                     </div>
                 </motion.div>
             );
-        };
+        }, (prevProps, nextProps) => {
+            // Custom comparison function for React.memo
+            return (
+                prevProps.quarterKey === nextProps.quarterKey &&
+                prevProps.quarter === nextProps.quarter &&
+                prevProps.budgetPerQuarter === nextProps.budgetPerQuarter &&
+                prevProps.syncKey === nextProps.syncKey &&
+                prevProps.gbpMode === nextProps.gbpMode &&
+                prevProps.gbpRate === nextProps.gbpRate
+            );
+        });
 
         // Footer Actions Component
         const FooterActions = ({ onReset, onExportCsv, t }) => (
@@ -2111,12 +2173,201 @@
             );
         };
 
+        // Offline Detection Hook
+        const useOnlineStatus = () => {
+            const [isOnline, setIsOnline] = useState(navigator.onLine);
+            
+            useEffect(() => {
+                const handleOnline = () => {
+                    debug.log('🌐 Connection restored');
+                    setIsOnline(true);
+                };
+                
+                const handleOffline = () => {
+                    debug.warn('📡 Connection lost');
+                    setIsOnline(false);
+                };
+                
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                
+                return () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                };
+            }, []);
+            
+            return isOnline;
+        };
+
+        // Toast Notification Hook
+        const useToast = () => {
+            const [toasts, setToasts] = useState([]);
+            
+            const addToast = useCallback((message, type = 'info', duration = 3000) => {
+                const id = Date.now() + Math.random();
+                setToasts(prev => [...prev, { id, message, type, duration }]);
+                
+                if (duration > 0) {
+                    setTimeout(() => {
+                        setToasts(prev => prev.filter(t => t.id !== id));
+                    }, duration);
+                }
+            }, []);
+            
+            const removeToast = useCallback((id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            }, []);
+            
+            return { toasts, addToast, removeToast };
+        };
+
+        // Toast Container Component
+        const ToastContainer = ({ toasts, removeToast }) => {
+            if (toasts.length === 0) return null;
+            
+            const getToastStyles = (type) => {
+                switch (type) {
+                    case 'success':
+                        return 'bg-green-600 text-white';
+                    case 'error':
+                        return 'bg-red-600 text-white';
+                    case 'warning':
+                        return 'bg-yellow-600 text-white';
+                    default:
+                        return 'bg-blue-600 text-white';
+                }
+            };
+            
+            const getToastIcon = (type) => {
+                switch (type) {
+                    case 'success':
+                        return '✅';
+                    case 'error':
+                        return '❌';
+                    case 'warning':
+                        return '⚠️';
+                    default:
+                        return 'ℹ️';
+                }
+            };
+            
+            return (
+                <div className="fixed top-4 right-4 z-50 space-y-2">
+                    <AnimatePresence>
+                        {toasts.map(toast => (
+                            <motion.div
+                                key={toast.id}
+                                initial={{ opacity: 0, x: 100 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 100 }}
+                                className={`${getToastStyles(toast.type)} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] max-w-md`}
+                            >
+                                <span className="text-xl">{getToastIcon(toast.type)}</span>
+                                <span className="flex-1 text-sm font-medium">{toast.message}</span>
+                                <button
+                                    onClick={() => removeToast(toast.id)}
+                                    className="text-white hover:opacity-80 transition-opacity"
+                                    aria-label="Close notification"
+                                >
+                                    ✕
+                                </button>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            );
+        };
+
+        // Loading Overlay Component
+        const LoadingOverlay = ({ isLoading, message = 'Loading...' }) => {
+            if (!isLoading) return null;
+            
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                >
+                    <div className="fd-bg-surface rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p className="fd-text-default font-medium">{message}</p>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // Error Boundary Component
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+            
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+            
+            componentDidCatch(error, errorInfo) {
+                debug.error('❌ Error caught by boundary:', error, errorInfo);
+                this.setState({ error, errorInfo });
+            }
+            
+            handleReload = () => {
+                window.location.reload();
+            };
+            
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen fd-bg-base flex items-center justify-center p-4">
+                            <div className="max-w-md w-full fd-bg-surface rounded-2xl shadow-xl border fd-border-default p-8">
+                                <div className="text-center">
+                                    <div className="text-6xl mb-4">⚠️</div>
+                                    <h1 className="text-2xl font-bold fd-text-strong mb-2">
+                                        Something went wrong
+                                    </h1>
+                                    <p className="fd-text-subtle mb-6">
+                                        The application encountered an unexpected error. Please try reloading the page.
+                                    </p>
+                                    {DEBUG_MODE && this.state.error && (
+                                        <details className="mb-6 text-left">
+                                            <summary className="cursor-pointer fd-text-subtle text-sm mb-2">
+                                                Error Details (Debug Mode)
+                                            </summary>
+                                            <pre className="text-xs fd-bg-layer p-4 rounded overflow-auto max-h-40">
+                                                {this.state.error.toString()}
+                                                {this.state.errorInfo && this.state.errorInfo.componentStack}
+                                            </pre>
+                                        </details>
+                                    )}
+                                    <button
+                                        onClick={this.handleReload}
+                                        className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                                    >
+                                        Reload Application
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                return this.props.children;
+            }
+        }
+
         // Main App Component
         const App = () => {
             const [user, setUser] = useState(null);
             const [showAuthModal, setShowAuthModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
             const [userProfilePicture, setUserProfilePicture] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [loadingMessage, setLoadingMessage] = useState('');
+            const { toasts, addToast, removeToast } = useToast();
+            const isOnline = useOnlineStatus();
             const [isDark, setIsDark] = useState(() => {
                 try {
                     const saved = localStorage.getItem('fd-theme-mode');
@@ -2240,24 +2491,30 @@
                 testConnection();
             }, []);
 
+            // Auto-load cloud data when user is authenticated
             useEffect(() => {
-                (async () => {
-                    console.log('Attempting to connect to cloud...');
-                    if (await cloudConnectViaPrompt()) {
-                        console.log('Cloud connection successful, setting linked to true');
-                        setCloudLinked(true);
-                        const loaded = await cloudLoadState();
-                        if (loaded) {
-                            console.log('Loaded data from cloud:', loaded);
-                            hydrateRoot(loaded);
-                        } else {
-                            console.log('No data found in cloud');
+                const loadCloudData = async () => {
+                    if (user && cloudLinked) {
+                        debug.log('User authenticated, loading cloud data...');
+                        try {
+                            const loaded = await cloudLoadState();
+                            if (loaded) {
+                                debug.log('Loaded data from cloud:', loaded);
+                                if (typeof hydrateRoot === 'function') {
+                                    hydrateRoot(loaded);
+                                } else {
+                                    debug.error('hydrateRoot is not available');
+                                }
+                            } else {
+                                debug.log('No data found in cloud');
+                            }
+                        } catch (error) {
+                            debug.error('Error loading cloud data:', error);
                         }
-                    } else {
-                        console.log('Cloud connection failed');
                     }
-                })();
-            }, [hydrateRoot]);
+                };
+                loadCloudData();
+            }, [user, cloudLinked, hydrateRoot]);
 
             // Authentication handlers
             const handleShowAuthModal = useCallback(() => {
@@ -2266,12 +2523,22 @@
 
             const handleAuthSuccess = useCallback(() => {
                 setShowAuthModal(false);
+                addToast('Successfully signed in!', 'success');
                 // Cloud sync will be handled by the auth state listener
-            }, []);
+            }, [addToast]);
 
             const handleSignOut = useCallback(async () => {
-                await signOut();
-            }, []);
+                try {
+                    setIsLoading(true);
+                    setLoadingMessage('Signing out...');
+                    await signOut();
+                    addToast('Successfully signed out', 'success');
+                } catch (error) {
+                    addToast('Failed to sign out', 'error');
+                } finally {
+                    setIsLoading(false);
+                }
+            }, [addToast]);
 
             const handleShowSettings = useCallback(() => {
                 setShowSettingsModal(true);
@@ -2285,24 +2552,122 @@
             }, []);
 
             const connectCloud = useCallback(async () => {
-                if (await cloudConnectViaPrompt()) {
-                    setCloudLinked(true);
-                    const loaded = await cloudLoadState();
-                    if (loaded) hydrateRoot(loaded);
+                try {
+                    setIsLoading(true);
+                    setLoadingMessage('Connecting to cloud...');
+                    if (await cloudConnectViaPrompt()) {
+                        setCloudLinked(true);
+                        const loaded = await cloudLoadState();
+                        if (loaded) {
+                            if (typeof hydrateRoot === 'function') {
+                                hydrateRoot(loaded);
+                                addToast('Cloud data loaded successfully', 'success');
+                            } else {
+                                debug.error('hydrateRoot is not a function:', typeof hydrateRoot);
+                                addToast('Failed to load cloud data', 'error');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    debug.error('Error connecting to cloud:', error);
+                    addToast('Failed to connect to cloud', 'error');
+                } finally {
+                    setIsLoading(false);
                 }
-            }, [hydrateRoot]);
+            }, [hydrateRoot, addToast]);
             
             const syncCloud = useCallback(async () => {
                 try {
+                    if (!isOnline) {
+                        addToast('Cannot sync while offline', 'warning');
+                        return;
+                    }
+                    
+                    setIsLoading(true);
+                    setLoadingMessage('Syncing data...');
+                    
                     const userId = auth ? getCurrentUserId() : null;
-                    if (!userId) return;
+                    if (!userId) {
+                        addToast('Please sign in to sync', 'warning');
+                        return;
+                    }
+                    
+                    // First, save current state to cloud
                     const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                    if (!raw) return;
-                    await cloudSaveState(JSON.parse(raw));
+                    if (raw) {
+                        await cloudSaveState(JSON.parse(raw));
+                        debug.log('✅ Saved to cloud');
+                    }
+                    
+                    // Then, load from cloud to get the latest
+                    const loaded = await cloudLoadState();
+                    if (loaded && typeof hydrateRoot === 'function') {
+                        hydrateRoot(loaded);
+                        debug.log('✅ Loaded from cloud');
+                    }
+                    
+                    addToast('Data synced successfully', 'success', CONSTANTS.TOAST_DURATION_SHORT);
                 } catch (error) {
-                    console.error('Error in syncCloud:', error);
+                    debug.error('Error in syncCloud:', error);
+                    addToast('Failed to sync data', 'error');
+                } finally {
+                    setIsLoading(false);
                 }
-            }, []);
+            }, [addToast, hydrateRoot, isOnline]);
+
+            // Keyboard shortcuts
+            useEffect(() => {
+                const handleKeyPress = (e) => {
+                    // Ctrl/Cmd + S to manually sync
+                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                        e.preventDefault();
+                        if (cloudLinked && user) {
+                            syncCloud();
+                            addToast('Manual sync triggered', 'info', CONSTANTS.TOAST_DURATION_SHORT);
+                        }
+                    }
+                    
+                    // Ctrl/Cmd + K to toggle theme
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                        e.preventDefault();
+                        toggleTheme();
+                    }
+                    
+                    // Ctrl/Cmd + , to open settings
+                    if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+                        e.preventDefault();
+                        if (user) {
+                            setShowSettingsModal(true);
+                        }
+                    }
+                    
+                    // Escape to close modals
+                    if (e.key === 'Escape') {
+                        setShowAuthModal(false);
+                        setShowSettingsModal(false);
+                    }
+                };
+                
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [cloudLinked, user, syncCloud, addToast, toggleTheme]);
+
+            // Monitor online/offline status
+            useEffect(() => {
+                if (!isOnline) {
+                    addToast('You are offline. Changes will sync when connection is restored.', 'warning', 5000);
+                } else {
+                    // Only show "back online" if we were previously offline
+                    const wasOffline = sessionStorage.getItem('wasOffline');
+                    if (wasOffline === 'true') {
+                        addToast('Connection restored! Syncing data...', 'success');
+                        sessionStorage.removeItem('wasOffline');
+                    }
+                }
+                if (!isOnline) {
+                    sessionStorage.setItem('wasOffline', 'true');
+                }
+            }, [isOnline, addToast]);
 
             // Auto-save to cloud when state changes
             useEffect(() => {
@@ -2348,21 +2713,21 @@
                 };
             }, [state, cloudLinked, user]);
 
-            // Periodic sync from cloud (every 10 seconds)
+            // Periodic sync from cloud (every 2 minutes)
             useEffect(() => {
                 if (!cloudLinked || !user) {
-                    console.log('❌ Cloud not linked or user not authenticated, skipping periodic sync');
+                    debug.log('❌ Cloud not linked or user not authenticated, skipping periodic sync');
                     return;
                 }
                 
-                console.log('🔄 Starting periodic sync from cloud...');
+                debug.log('🔄 Starting periodic sync from cloud (every 2 minutes)...');
                 const intervalId = setInterval(async () => {
                     try {
-                        console.log('📥 Periodic sync: Loading state from cloud...');
+                        perfMonitor.start('Periodic Cloud Sync');
+                        debug.log('📥 Periodic sync: Loading state from cloud...');
                         const loaded = await cloudLoadState();
                         if (loaded) {
-                            console.log('📥 Periodic sync: Loaded data from cloud');
-                            console.log('📥 Data loaded:', loaded);
+                            debug.log('📥 Periodic sync: Loaded data from cloud');
                             
                             // Check if cloud data is newer than local data
                             const userId = auth ? getCurrentUserId() : null;
@@ -2373,7 +2738,7 @@
                                     const cloudTimestamp = loaded.lastUpdated?.toDate?.() || new Date(0);
                                     const localTimestamp = local.lastUpdated?.toDate?.() || new Date(0);
                                     
-                                    console.log('⏰ Timestamp comparison:', {
+                                    debug.log('⏰ Timestamp comparison:', {
                                         cloud: cloudTimestamp,
                                         local: localTimestamp,
                                         cloudNewer: cloudTimestamp > localTimestamp
@@ -2381,7 +2746,7 @@
                                     
                                     // Only update if cloud data is newer
                                     if (cloudTimestamp > localTimestamp) {
-                                        console.log('📥 Cloud data is newer, updating app state');
+                                        debug.log('📥 Cloud data is newer, updating app state');
                                         
                                         // Ensure cloud data has minimum required years
                                         const currentYear = new Date().getFullYear();
@@ -2398,23 +2763,25 @@
                                         console.log('📥 Ensured data has required years:', ensuredData);
                                         hydrateRoot(ensuredData);
                                     } else {
-                                        console.log('📥 Local data is newer or same, skipping update');
+                                        debug.log('⏭️ Local data is newer or same, skipping update');
                                     }
                                 } else {
-                                    console.log('📥 No local data, using cloud data');
+                                    debug.log('📥 No local data, using cloud data');
                                     hydrateRoot(loaded);
                                 }
                             } else {
-                                console.log('📥 No user ID, skipping timestamp check');
+                                debug.log('📥 No user ID, skipping timestamp check');
                                 hydrateRoot(loaded);
                             }
                         } else {
-                            console.log('📥 Periodic sync: No data found in cloud');
+                            debug.log('📥 Periodic sync: No data found in cloud');
                         }
+                        perfMonitor.end('Periodic Cloud Sync');
                     } catch (error) {
-                        console.error('❌ Error in periodic sync:', error);
+                        debug.error('❌ Error in periodic sync:', error);
+                        perfMonitor.end('Periodic Cloud Sync');
                     }
-                }, 30000); // Check for updates every 30 seconds
+                }, 120000); // Check for updates every 2 minutes
                 
                 return () => {
                     console.log('🛑 Stopping periodic sync');
@@ -2425,6 +2792,16 @@
 
             return (
                 <div className="min-h-screen fd-bg-base">
+                    <LoadingOverlay isLoading={isLoading} message={loadingMessage} />
+                    <ToastContainer toasts={toasts} removeToast={removeToast} />
+                    
+                    {/* Offline Indicator */}
+                    {!isOnline && (
+                        <div className="fixed top-0 left-0 right-0 bg-yellow-600 text-white text-center py-2 text-sm font-medium z-40">
+                            📡 You are offline - Changes will sync when connection is restored
+                        </div>
+                    )}
+                    
                     <Header 
                         isDark={isDark} 
                         onToggleTheme={toggleTheme} 
@@ -2566,9 +2943,18 @@
         const rootEl = document.getElementById('root');
         if (ReactDOM.createRoot) {
             const root = ReactDOM.createRoot(rootEl);
-            root.render(<App />);
+            root.render(
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
+            );
         } else {
-            ReactDOM.render(<App />, rootEl);
+            ReactDOM.render(
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>,
+                rootEl
+            );
         }
     </script>
 </body>
