@@ -183,7 +183,7 @@
         };
         
         // Initialize Firebase
-        let auth, db, storage;
+        let auth = null, db = null, storage = null;
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
@@ -192,10 +192,11 @@
             auth = firebase.auth();
             db = firebase.firestore();
             storage = firebase.storage();
-            console.log('Firebase initialized successfully');
+            console.log('✅ Firebase initialized successfully');
+            console.log('🔧 Firebase services:', { auth: !!auth, db: !!db, storage: !!storage });
         } catch (error) {
-            console.error('Firebase initialization error:', error);
-            // Create fallback objects to prevent errors
+            console.error('❌ Firebase initialization error:', error);
+            // Keep null values
             auth = null;
             db = null;
             storage = null;
@@ -352,21 +353,36 @@
 
         // Firebase Authentication System
         const getCurrentUserId = () => {
-            if (!auth) return null;
-            const user = auth.currentUser;
-            return user ? user.uid : null;
+            try {
+                if (!auth || !auth.currentUser) return null;
+                const user = auth.currentUser;
+                return user ? user.uid : null;
+            } catch (error) {
+                console.error('Error getting user ID:', error);
+                return null;
+            }
         };
 
         const getCurrentUsername = () => {
-            if (!auth) return 'Guest';
-            const user = auth.currentUser;
-            return user ? (user.displayName || user.email.split('@')[0]) : 'Guest';
+            try {
+                if (!auth || !auth.currentUser) return 'Guest';
+                const user = auth.currentUser;
+                return user ? (user.displayName || user.email.split('@')[0]) : 'Guest';
+            } catch (error) {
+                console.error('Error getting username:', error);
+                return 'Guest';
+            }
         };
 
         const getCurrentUserEmail = () => {
-            if (!auth) return null;
-            const user = auth.currentUser;
-            return user ? user.email : null;
+            try {
+                if (!auth || !auth.currentUser) return '';
+                const user = auth.currentUser;
+                return user ? user.email : '';
+            } catch (error) {
+                console.error('Error getting user email:', error);
+                return '';
+            }
         };
 
         const signOut = async () => {
@@ -384,9 +400,27 @@
 
         // Custom hook for app state
         const useAppState = () => {
+            try {
             const [rootState, setRootState] = useState(() => {
                 try {
-                    const userId = getCurrentUserId();
+                    // Ensure all required functions are available
+                    if (typeof getDefaultSelectedYear !== 'function' || typeof createInitialYearState !== 'function') {
+                        console.error('Required functions not available:', { 
+                            getDefaultSelectedYear: typeof getDefaultSelectedYear, 
+                            createInitialYearState: typeof createInitialYearState 
+                        });
+                        throw new Error('Required functions not available');
+                    }
+
+                    let userId = null;
+                    if (auth && typeof getCurrentUserId === 'function') {
+                        try {
+                            userId = getCurrentUserId();
+                        } catch (e) {
+                            console.log('Error getting user ID in initial state:', e);
+                            userId = null;
+                        }
+                    }
                     if (userId) {
                         const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                         if (savedV2) return JSON.parse(savedV2);
@@ -397,21 +431,53 @@
                     initialYears[String(initialYear)] = createInitialYearState();
                     initialYears[String(initialYear + 1)] = createInitialYearState();
                     return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
-                } catch {}
-                const initialYear = getDefaultSelectedYear();
-                const initialYears = {};
-                initialYears[String(initialYear)] = createInitialYearState();
-                initialYears[String(initialYear + 1)] = createInitialYearState();
-                return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
+                } catch (e) {
+                    console.error('Error in useAppState initializer:', e);
+                    // Fallback to basic state
+                    try {
+                        const initialYear = getDefaultSelectedYear();
+                        const initialYears = {};
+                        initialYears[String(initialYear)] = createInitialYearState();
+                        initialYears[String(initialYear + 1)] = createInitialYearState();
+                        return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
+                    } catch (fallbackError) {
+                        console.error('Fallback state creation failed:', fallbackError);
+                        // Ultimate fallback - hardcoded state
+                        return { 
+                            selectedYear: 2025, 
+                            years: { 
+                                "2025": {
+                                    quarters: {
+                                        Q1: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                                        Q2: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                                        Q3: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                                        Q4: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } },
+                                    },
+                                    budgetPerQuarter: 380,
+                                }
+                            }, 
+                            settings: { gbpMode: false, gbpRate: 0.85 } 
+                        };
+                    }
+                }
             });
 
             const saveRootState = useCallback((newRoot) => {
+                console.log('💾 Saving root state:', newRoot);
                 setRootState(newRoot);
-                const userId = getCurrentUserId();
-                localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRoot));
+                const userId = auth ? getCurrentUserId() : null;
+                console.log('👤 User ID for save:', userId);
+                if (userId) {
+                    localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRoot));
+                    console.log('✅ State saved to localStorage');
+                } else {
+                    console.log('❌ No user ID, not saving to localStorage');
+                }
             }, []);
 
             const currentYearKey = String(rootState.selectedYear);
+            
+            // Define helper functions first
             const ensureQuarterShape = (q) => ({
                 active: q?.active ?? true,
                 spent: Number(q?.spent ?? 0),
@@ -421,6 +487,7 @@
                     hotel: Number(q?.details?.hotel ?? 0)
                 }
             });
+            
             const ensureStateShape = (s) => ({
                 budgetPerQuarter: Number(s?.budgetPerQuarter ?? 380),
                 quarters: {
@@ -434,63 +501,94 @@
                     gbpRate: Number(s?.settings?.gbpRate ?? 0.85)
                 }
             });
-            const rawState = rootState.years[currentYearKey] || createInitialYearState();
+            const rawState = rootState?.years?.[currentYearKey] || createInitialYearState();
             const state = ensureStateShape(rawState);
 
             const calculations = useMemo(() => {
-                const activeQuarters = Object.values(state.quarters).filter(q => q.active);
-                const totalAvailable = activeQuarters.length * state.budgetPerQuarter;
-                const totalSpent = activeQuarters.reduce((sum, q) => sum + q.spent, 0);
-                const annualBalance = totalAvailable - totalSpent;
-                return { totalAvailable, totalSpent, annualBalance, activeQuartersCount: activeQuarters.length };
-            }, [state.quarters, state.budgetPerQuarter]);
+                try {
+                    const activeQuarters = Object.values(state?.quarters || {}).filter(q => q?.active);
+                    const totalAvailable = activeQuarters.length * (state?.budgetPerQuarter || 380);
+                    const totalSpent = activeQuarters.reduce((sum, q) => sum + (q?.spent || 0), 0);
+                    const annualBalance = totalAvailable - totalSpent;
+                    return { totalAvailable, totalSpent, annualBalance, activeQuartersCount: activeQuarters.length };
+                } catch (error) {
+                    console.error('Error in calculations:', error);
+                    return { totalAvailable: 0, totalSpent: 0, annualBalance: 0, activeQuartersCount: 0 };
+                }
+            }, [state?.quarters, state?.budgetPerQuarter]);
 
             const updateYearState = useCallback((mutator) => {
-                const yearKey = String(rootState.selectedYear);
-                const updatedYear = mutator(rootState.years[yearKey] || createInitialYearState());
-                const newRoot = {
-                    ...rootState,
-                    years: { ...rootState.years, [yearKey]: updatedYear }
-                };
-                saveRootState(newRoot);
+                try {
+                    console.log('🔄 updateYearState called');
+                    const yearKey = String(rootState?.selectedYear || 2025);
+                    console.log('📅 Year key:', yearKey);
+                    const currentYear = rootState?.years?.[yearKey] || createInitialYearState();
+                    console.log('📊 Current year data:', currentYear);
+                    const updatedYear = mutator(currentYear);
+                    console.log('📊 Updated year data:', updatedYear);
+                    const newRoot = {
+                        ...rootState,
+                        years: { ...(rootState?.years || {}), [yearKey]: updatedYear }
+                    };
+                    console.log('📊 New root state:', newRoot);
+                    saveRootState(newRoot);
+                } catch (error) {
+                    console.error('Error in updateYearState:', error);
+                }
             }, [rootState, saveRootState]);
 
             const selectYear = useCallback((year) => {
-                const y = Number(year);
-                const nextRoot = {
-                    ...rootState,
-                    selectedYear: y,
-                    years: rootState.years[y] ? rootState.years : { ...rootState.years, [String(y)]: createInitialYearState() }
-                };
-                saveRootState(nextRoot);
+                try {
+                    const y = Number(year);
+                    const nextRoot = {
+                        ...rootState,
+                        selectedYear: y,
+                        years: rootState?.years?.[y] ? rootState.years : { ...(rootState?.years || {}), [String(y)]: createInitialYearState() }
+                    };
+                    saveRootState(nextRoot);
+                } catch (error) {
+                    console.error('Error in selectYear:', error);
+                }
             }, [rootState, saveRootState]);
 
             const addNextYear = useCallback(() => {
-                const next = rootState.selectedYear + 1;
-                if (rootState.years[String(next)]) {
-                    selectYear(next);
-                    return;
+                try {
+                    const next = (rootState?.selectedYear || 2025) + 1;
+                    if (rootState?.years?.[String(next)]) {
+                        selectYear(next);
+                        return;
+                    }
+                    const newRoot = {
+                        ...rootState,
+                        selectedYear: next,
+                        years: { ...(rootState?.years || {}), [String(next)]: createInitialYearState() }
+                    };
+                    saveRootState(newRoot);
+                } catch (error) {
+                    console.error('Error in addNextYear:', error);
                 }
-                const newRoot = {
-                    ...rootState,
-                    selectedYear: next,
-                    years: { ...rootState.years, [String(next)]: createInitialYearState() }
-                };
-                saveRootState(newRoot);
             }, [rootState, selectYear, saveRootState]);
 
             const toggleQuarter = useCallback((quarterKey) => {
-                updateYearState((prev) => ({
-                    ...prev,
-                    quarters: {
-                        ...prev.quarters,
-                        [quarterKey]: { ...prev.quarters[quarterKey], active: !prev.quarters[quarterKey].active }
-                    }
-                }));
+                console.log('🔄 Toggle quarter clicked:', quarterKey);
+                updateYearState((prev) => {
+                    console.log('📊 Previous state:', prev);
+                    const newState = {
+                        ...prev,
+                        quarters: {
+                            ...prev.quarters,
+                            [quarterKey]: { ...prev.quarters[quarterKey], active: !prev.quarters[quarterKey].active }
+                        }
+                    };
+                    console.log('📊 New state:', newState);
+                    return newState;
+                });
             }, [updateYearState]);
 
             const updateQuarterDetail = useCallback((quarterKey, field, value) => {
+                console.log('📝 Update quarter detail:', { quarterKey, field, value });
                 const validation = validateSpentAmount(value);
+                console.log('✅ Validation result:', validation);
                 if (!validation.valid) return;
                 updateYearState((prev) => {
                     const q = prev.quarters[quarterKey];
@@ -554,35 +652,59 @@
             const hydrateRoot = useCallback((newRootState) => {
                 console.log('Hydrating root state with:', newRootState);
                 setRootState(newRootState);
-                const userId = getCurrentUserId();
-                localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRootState));
+                const userId = auth ? getCurrentUserId() : null;
+                if (userId) {
+                    localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRootState));
+                }
             }, []);
 
             return {
-                state,
-                calculations,
-                toggleQuarter,
-                updateQuarterDetail,
-                resetAll,
-                exportToCSV,
-                selectYear,
-                addNextYear,
-                selectedYear: rootState.selectedYear,
-                availableYears: Object.keys(rootState.years).map(y => Number(y)).sort(),
+                state: state || {},
+                calculations: calculations || { totalAvailable: 0, totalSpent: 0, annualBalance: 0, activeQuartersCount: 0 },
+                toggleQuarter: toggleQuarter || (() => {}),
+                updateQuarterDetail: updateQuarterDetail || (() => {}),
+                resetAll: resetAll || (() => {}),
+                exportToCSV: exportToCSV || (() => {}),
+                selectYear: selectYear || (() => {}),
+                addNextYear: addNextYear || (() => {}),
+                selectedYear: rootState?.selectedYear || 2025,
+                availableYears: Object.keys(rootState?.years || {}).map(y => Number(y)).sort(),
                 updateSettings: (patch) => {
-                    const yearKey = String(rootState.selectedYear);
-                    const updatedYear = rootState.years[yearKey] || createInitialYearState();
-                    const newRoot = {
-                        ...rootState,
-                        years: {
-                            ...rootState.years,
-                            [yearKey]: ensureStateShape({ ...updatedYear, settings: { ...state.settings, ...patch } })
-                        }
-                    };
-                    saveRootState(newRoot);
+                    try {
+                        const yearKey = String(rootState?.selectedYear || 2025);
+                        const updatedYear = rootState?.years?.[yearKey] || createInitialYearState();
+                        const newRoot = {
+                            ...rootState,
+                            years: {
+                                ...(rootState?.years || {}),
+                                [yearKey]: ensureStateShape({ ...updatedYear, settings: { ...(state?.settings || {}), ...patch } })
+                            }
+                        };
+                        saveRootState(newRoot);
+                    } catch (error) {
+                        console.error('Error in updateSettings:', error);
+                    }
                 },
-                hydrateRoot
+                hydrateRoot: hydrateRoot || (() => {})
             };
+            } catch (error) {
+                console.error('Critical error in useAppState:', error);
+                // Return a minimal fallback state
+                return {
+                    state: { selectedYear: 2025, years: { "2025": { quarters: { Q1: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } }, Q2: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } }, Q3: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } }, Q4: { active: true, spent: 0, details: { flightToOffice: 0, flightHome: 0, hotel: 0 } } }, budgetPerQuarter: 380 } }, settings: { gbpMode: false, gbpRate: 0.85 } },
+                    calculations: { totalAvailable: 0, totalSpent: 0, annualBalance: 0 },
+                    toggleQuarter: () => {},
+                    updateQuarterDetail: () => {},
+                    resetAll: () => {},
+                    exportToCSV: () => {},
+                    selectYear: () => {},
+                    addNextYear: () => {},
+                    selectedYear: 2025,
+                    availableYears: [2025],
+                    updateSettings: () => {},
+                    hydrateRoot: () => {}
+                };
+            }
         };
 
         // Header Component
@@ -590,6 +712,9 @@
             const [showUserMenu, setShowUserMenu] = useState(false);
             const currentUsername = getCurrentUsername();
             const currentUserEmail = getCurrentUserEmail();
+            
+            // Debug profile picture
+            console.log('Header render - userProfilePicture:', userProfilePicture);
             
             return (
             <motion.header 
@@ -902,13 +1027,13 @@
             const officeRef = React.useRef(null);
             const homeRef = React.useRef(null);
             const hotelRef = React.useRef(null);
+            const [isFocused, setIsFocused] = React.useState(false);
 
             useEffect(() => {
                 const isFocusedEl = (ref) => {
                     if (!ref || !ref.current) return false;
                     const activeEl = document.activeElement;
-                    return activeEl === ref.current || 
-                           (activeEl && ref.current.contains && ref.current.contains(activeEl));
+                    return activeEl === ref.current;
                 };
                 
                 const toDisplay = (eur) => {
@@ -923,16 +1048,26 @@
                                      (homeRef.current?.getAttribute('data-mobile-typing') === 'true') ||
                                      (hotelRef.current?.getAttribute('data-mobile-typing') === 'true');
                 
-                if (!isInputFocused && !isMobileTyping) {
+                // Only update if not focused, not typing, and the value has actually changed
+                if (!isFocused && !isInputFocused && !isMobileTyping) {
                     if (officeRef.current) {
-                        officeRef.current.value = toDisplay(quarter.details?.flightToOffice);
+                        const newValue = toDisplay(quarter.details?.flightToOffice);
+                        if (officeRef.current.value !== newValue) {
+                            officeRef.current.value = newValue;
+                        }
                     }
                     if (homeRef.current) {
-                        homeRef.current.value = toDisplay(quarter.details?.flightHome);
+                        const newValue = toDisplay(quarter.details?.flightHome);
+                        if (homeRef.current.value !== newValue) {
+                            homeRef.current.value = newValue;
+                        }
                     }
                     if (hotelRef.current) {
                         const num = Number(quarter.details?.hotel ?? 0);
-                        hotelRef.current.value = num ? num.toFixed(2) : '';
+                        const newValue = num ? num.toFixed(2) : '';
+                        if (hotelRef.current.value !== newValue) {
+                            hotelRef.current.value = newValue;
+                        }
                     }
                 }
             }, [syncKey, quarter.details?.flightToOffice, quarter.details?.flightHome, quarter.details?.hotel, gbpMode, gbpRate]);
@@ -943,27 +1078,37 @@
 
             const commitField = (ref, field) => {
                 const raw = ref.current ? ref.current.value : '';
+                console.log('💾 Committing field:', { field, raw, quarterKey });
                 const validation = validateSpentAmount(raw);
                 const current = Number(quarter.details?.[field] ?? 0);
-                const normalized = (() => {
-                    if (field === 'hotel') {
-                        return validation.valid ? validation.value.toFixed(2) : (current ? current.toFixed(2) : '');
-                    }
-                    return validation.valid ? validation.value.toFixed(2) : (current ? (gbpMode ? (current * gbpRate).toFixed(2) : current.toFixed(2)) : '');
-                })();
-                if (ref.current) ref.current.value = normalized;
+                console.log('✅ Validation result:', validation);
+                
                 if (validation.valid) {
-                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value * gbpRate) : validation.value);
+                    // Don't update the input value - keep what user typed
+                    // Just save the value to state
+                    const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value / gbpRate) : validation.value);
+                    console.log('💰 Converting to EUR:', eur);
                     onChangeDetail(quarterKey, field, eur.toFixed(2));
+                } else {
+                    console.log('❌ Validation failed, restoring value');
+                    // If validation fails, restore the current value
+                    const currentDisplay = field === 'hotel' ? 
+                        (current ? current.toFixed(2) : '') : 
+                        (current ? (gbpMode ? (current * gbpRate).toFixed(2) : current.toFixed(2)) : '');
+                    if (ref.current) ref.current.value = currentDisplay;
                 }
             };
 
             const handleFocus = () => {
-                // Prevent value updates while focused on mobile
+                console.log('🎯 Input focused');
+                // Prevent value updates while focused
+                setIsFocused(true);
             };
             const handleBlur = (ref, field) => { 
+                console.log('👋 Input blurred:', field);
                 // Add small delay for mobile to ensure value is captured
                 setTimeout(() => {
+                    setIsFocused(false);
                     commitField(ref, field);
                 }, 100);
             };
@@ -973,6 +1118,7 @@
                 const target = e.currentTarget;
                 // Defer commit to ensure the latest keystroke is applied in the DOM value
                 setTimeout(() => {
+                    setIsFocused(false);
                     commitField(ref, field);
                     target.blur();
                 }, 0);
@@ -982,6 +1128,12 @@
             const handleInput = (e) => {
                 // Prevent the useEffect from overwriting while typing on mobile
                 e.target.setAttribute('data-mobile-typing', 'true');
+                // Clear the flag after a delay to prevent it from getting stuck
+                setTimeout(() => {
+                    if (e.target) {
+                        e.target.removeAttribute('data-mobile-typing');
+                    }
+                }, 2000);
             };
             
             const handleInputEnd = (ref, field) => {
@@ -989,6 +1141,7 @@
                 if (ref.current) {
                     ref.current.removeAttribute('data-mobile-typing');
                 }
+                setIsFocused(false);
                 commitField(ref, field);
             };
 
@@ -1201,7 +1354,10 @@
 
         // Profile Picture Management
         const uploadProfilePicture = async (file, userId) => {
-            if (!storage || !userId) return null;
+            if (!storage || !userId) {
+                console.error('Missing storage or userId');
+                return null;
+            }
             
             try {
                 // Create a reference to the file
@@ -1214,7 +1370,7 @@
                 // Get the download URL
                 const downloadURL = await snapshot.ref.getDownloadURL();
                 
-                // Update user document in Firestore (use set with merge to create if doesn't exist)
+                // Update user document in Firestore
                 await db.collection('userData').doc(userId).set({
                     profilePicture: downloadURL,
                     updatedAt: new Date()
@@ -1258,17 +1414,15 @@
 
         const getUserProfileData = async (userId) => {
             if (!db || !userId) {
-                console.log('getUserProfileData: No db or userId', { db: !!db, userId });
+                console.log('getUserProfileData: No db or userId');
                 return null;
             }
             
             try {
-                console.log('getUserProfileData: Fetching data for user:', userId);
                 const userDoc = await db.collection('userData').doc(userId).get();
-                console.log('getUserProfileData: Document exists:', userDoc.exists);
                 if (userDoc.exists) {
                     const data = userDoc.data();
-                    console.log('getUserProfileData: Document data:', data);
+                    console.log('Profile data loaded:', data?.profilePicture ? 'Yes' : 'No');
                     return data;
                 }
                 return null;
@@ -1280,18 +1434,17 @@
 
         // Firebase Firestore Cloud Storage
         const cloudLoadState = async () => {
-            if (!db) {
-                console.log('Firestore not initialized');
-                return null;
-            }
-            
-            const userId = getCurrentUserId();
-            if (!userId) {
-                console.log('No user ID for cloud load');
-                return null;
-            }
-            
             try {
+                if (!db) {
+                    console.log('Firestore not initialized');
+                    return null;
+                }
+                
+                const userId = auth ? getCurrentUserId() : null;
+                if (!userId) {
+                    console.log('No user ID for cloud load');
+                    return null;
+                }
                 console.log('Loading state from Firestore...');
                 const docRef = db.collection('userData').doc(userId);
                 const doc = await docRef.get();
@@ -1311,18 +1464,17 @@
         };
         
         const cloudSaveState = async (data) => {
-            if (!db) {
-                console.log('Firestore not initialized');
-                return false;
-            }
-            
-            const userId = getCurrentUserId();
-            if (!userId) {
-                console.log('No user ID for cloud save');
-                return false;
-            }
-            
             try {
+                if (!db) {
+                    console.log('Firestore not initialized');
+                    return false;
+                }
+                
+                const userId = auth ? getCurrentUserId() : null;
+                if (!userId) {
+                    console.log('No user ID for cloud save');
+                    return false;
+                }
                 console.log('Saving state to Firestore:', data);
                 const docRef = db.collection('userData').doc(userId);
                 await docRef.set({
@@ -1342,6 +1494,50 @@
         const cloudConnectViaPrompt = async () => {
             // Firebase connection is handled by auth state
             return true;
+        };
+
+        // Test Firebase connectivity
+        const testFirebaseConnection = async () => {
+            console.log('🧪 Testing Firebase connection...');
+            try {
+                if (!auth) {
+                    console.log('❌ Firebase Auth not available');
+                    return false;
+                }
+                if (!db) {
+                    console.log('❌ Firebase Firestore not available');
+                    return false;
+                }
+                if (!storage) {
+                    console.log('❌ Firebase Storage not available');
+                    return false;
+                }
+                
+                console.log('✅ All Firebase services are available');
+                console.log('✅ Firebase connection test successful (no Firestore read test to avoid permissions issues)');
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase connection test failed:', error);
+                return false;
+            }
+        };
+
+        // Make test function available globally for debugging
+        window.testFirebaseConnection = testFirebaseConnection;
+        
+        // Debug function to check app state
+        window.debugAppState = () => {
+            console.log('🔍 Debug App State:');
+            console.log('Firebase services:', { auth: !!auth, db: !!db, storage: !!storage });
+            console.log('Functions available:', {
+                getCurrentUserId: typeof getCurrentUserId,
+                getCurrentUsername: typeof getCurrentUsername,
+                getCurrentUserEmail: typeof getCurrentUserEmail,
+                createInitialYearState: typeof createInitialYearState,
+                getDefaultSelectedYear: typeof getDefaultSelectedYear
+            });
+            console.log('Current user:', auth?.currentUser);
         };
 
         // Background Exchange Rate Updater
@@ -1970,10 +2166,25 @@
                 };
                 loadProfileOnMount();
             }, [user, userProfilePicture]);
+
+            // Debug profile picture state changes
+            useEffect(() => {
+                console.log('userProfilePicture state changed:', userProfilePicture);
+            }, [userProfilePicture]);
+
             
             useEffect(() => {
                 const cleanup = startBackgroundRateUpdater();
                 return cleanup;
+            }, []);
+
+            // Test Firebase connection on app start
+            useEffect(() => {
+                const testConnection = async () => {
+                    console.log('🚀 App started, testing Firebase connection...');
+                    await testFirebaseConnection();
+                };
+                testConnection();
             }, []);
 
             useEffect(() => {
@@ -2016,6 +2227,8 @@
             const handleProfileUpdate = useCallback((profilePictureUrl) => {
                 console.log('Profile picture updated:', profilePictureUrl);
                 setUserProfilePicture(profilePictureUrl);
+                // Force a re-render by updating a dummy state
+                setUser(prev => ({ ...prev }));
             }, []);
 
             const connectCloud = useCallback(async () => {
@@ -2027,11 +2240,15 @@
             }, [hydrateRoot]);
             
             const syncCloud = useCallback(async () => {
-                const userId = getCurrentUserId();
-                if (!userId) return;
-                const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                if (!raw) return;
-                await cloudSaveState(JSON.parse(raw));
+                try {
+                    const userId = auth ? getCurrentUserId() : null;
+                    if (!userId) return;
+                    const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                    if (!raw) return;
+                    await cloudSaveState(JSON.parse(raw));
+                } catch (error) {
+                    console.error('Error in syncCloud:', error);
+                }
             }, []);
 
             // Auto-save to cloud when state changes
@@ -2045,20 +2262,29 @@
                 
                 console.log('⏰ Setting up auto-save timer...');
                 const timeoutId = setTimeout(async () => {
-                    const userId = getCurrentUserId();
-                    console.log('👤 Current user ID:', userId);
-                    
-                    const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                    console.log('💾 Raw localStorage data:', raw);
-                    
-                    if (raw) {
-                        console.log('☁️ Auto-saving to cloud...');
-                        const data = JSON.parse(raw);
-                        console.log('📤 Data being saved:', data);
-                        const success = await cloudSaveState(data);
-                        console.log('✅ Auto-save result:', success);
-                    } else {
-                        console.log('⚠️ No data to save in localStorage');
+                    try {
+                        const userId = auth ? getCurrentUserId() : null;
+                        console.log('👤 Current user ID:', userId);
+                        
+                        if (!userId) {
+                            console.log('❌ No user ID for auto-save');
+                            return;
+                        }
+                        
+                        const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                        console.log('💾 Raw localStorage data:', raw);
+                        
+                        if (raw) {
+                            console.log('☁️ Auto-saving to cloud...');
+                            const data = JSON.parse(raw);
+                            console.log('📤 Data being saved:', data);
+                            const success = await cloudSaveState(data);
+                            console.log('✅ Auto-save result:', success);
+                        } else {
+                            console.log('⚠️ No data to save in localStorage');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error in auto-save:', error);
                     }
                 }, 1000); // Debounce saves by 1 second
                 
@@ -2077,14 +2303,18 @@
                 
                 console.log('🔄 Starting periodic sync from cloud...');
                 const intervalId = setInterval(async () => {
-                    console.log('📥 Periodic sync: Loading state from cloud...');
-                    const loaded = await cloudLoadState();
-                    if (loaded) {
-                        console.log('📥 Periodic sync: Loaded data from cloud, updating app state');
-                        console.log('📥 Data loaded:', loaded);
-                        hydrateRoot(loaded);
-                    } else {
-                        console.log('📥 Periodic sync: No data found in cloud');
+                    try {
+                        console.log('📥 Periodic sync: Loading state from cloud...');
+                        const loaded = await cloudLoadState();
+                        if (loaded) {
+                            console.log('📥 Periodic sync: Loaded data from cloud, updating app state');
+                            console.log('📥 Data loaded:', loaded);
+                            hydrateRoot(loaded);
+                        } else {
+                            console.log('📥 Periodic sync: No data found in cloud');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error in periodic sync:', error);
                     }
                 }, 10000); // Check for updates every 10 seconds
                 
