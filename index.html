@@ -483,14 +483,14 @@
                         }
                     }
                     if (userId) {
-                        const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                        if (savedV2) return JSON.parse(savedV2);
+                    const savedV2 = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                    if (savedV2) return JSON.parse(savedV2);
                     }
                     // If no user or no saved data, return clean initial state
-                    const initialYear = getDefaultSelectedYear();
-                    const initialYears = {};
-                    initialYears[String(initialYear)] = createInitialYearState();
-                    initialYears[String(initialYear + 1)] = createInitialYearState();
+                const initialYear = getDefaultSelectedYear();
+                const initialYears = {};
+                initialYears[String(initialYear)] = createInitialYearState();
+                initialYears[String(initialYear + 1)] = createInitialYearState();
                     return { selectedYear: initialYear, years: initialYears, settings: { gbpMode: false, gbpRate: 0.85 } };
                 } catch (e) {
                     console.error('Error in useAppState initializer:', e);
@@ -529,7 +529,7 @@
                 const userId = auth ? getCurrentUserId() : null;
                 console.log('👤 User ID for save:', userId);
                 if (userId) {
-                    localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRoot));
+                localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRoot));
                     console.log('✅ State saved to localStorage');
                 } else {
                     console.log('❌ No user ID, not saving to localStorage');
@@ -570,8 +570,8 @@
                     const activeQuarters = Object.values(state?.quarters || {}).filter(q => q?.active);
                     const totalAvailable = activeQuarters.length * (state?.budgetPerQuarter || 380);
                     const totalSpent = activeQuarters.reduce((sum, q) => sum + (q?.spent || 0), 0);
-                    const annualBalance = totalAvailable - totalSpent;
-                    return { totalAvailable, totalSpent, annualBalance, activeQuartersCount: activeQuarters.length };
+                const annualBalance = totalAvailable - totalSpent;
+                return { totalAvailable, totalSpent, annualBalance, activeQuartersCount: activeQuarters.length };
                 } catch (error) {
                     console.error('Error in calculations:', error);
                     return { totalAvailable: 0, totalSpent: 0, annualBalance: 0, activeQuartersCount: 0 };
@@ -587,12 +587,12 @@
                     console.log('📊 Current year data:', currentYear);
                     const updatedYear = mutator(currentYear);
                     console.log('📊 Updated year data:', updatedYear);
-                    const newRoot = {
-                        ...rootState,
+                const newRoot = {
+                    ...rootState,
                         years: { ...(rootState?.years || {}), [yearKey]: updatedYear }
-                    };
+                };
                     console.log('📊 New root state:', newRoot);
-                    saveRootState(newRoot);
+                saveRootState(newRoot);
                 } catch (error) {
                     console.error('Error in updateYearState:', error);
                 }
@@ -600,13 +600,13 @@
 
             const selectYear = useCallback((year) => {
                 try {
-                    const y = Number(year);
-                    const nextRoot = {
-                        ...rootState,
-                        selectedYear: y,
+                const y = Number(year);
+                const nextRoot = {
+                    ...rootState,
+                    selectedYear: y,
                         years: rootState?.years?.[y] ? rootState.years : { ...(rootState?.years || {}), [String(y)]: createInitialYearState() }
-                    };
-                    saveRootState(nextRoot);
+                };
+                saveRootState(nextRoot);
                 } catch (error) {
                     console.error('Error in selectYear:', error);
                 }
@@ -616,15 +616,15 @@
                 try {
                     const next = (rootState?.selectedYear || 2025) + 1;
                     if (rootState?.years?.[String(next)]) {
-                        selectYear(next);
-                        return;
-                    }
-                    const newRoot = {
-                        ...rootState,
-                        selectedYear: next,
+                    selectYear(next);
+                    return;
+                }
+                const newRoot = {
+                    ...rootState,
+                    selectedYear: next,
                         years: { ...(rootState?.years || {}), [String(next)]: createInitialYearState() }
-                    };
-                    saveRootState(newRoot);
+                };
+                saveRootState(newRoot);
                 } catch (error) {
                     console.error('Error in addNextYear:', error);
                 }
@@ -635,11 +635,11 @@
                 updateYearState((prev) => {
                     console.log('📊 Previous state:', prev);
                     const newState = {
-                        ...prev,
-                        quarters: {
-                            ...prev.quarters,
-                            [quarterKey]: { ...prev.quarters[quarterKey], active: !prev.quarters[quarterKey].active }
-                        }
+                    ...prev,
+                    quarters: {
+                        ...prev.quarters,
+                        [quarterKey]: { ...prev.quarters[quarterKey], active: !prev.quarters[quarterKey].active }
+                    }
                     };
                     console.log('📊 New state:', newState);
                     return newState;
@@ -754,14 +754,14 @@
                     try {
                         const yearKey = String(rootState?.selectedYear || 2025);
                         const updatedYear = rootState?.years?.[yearKey] || createInitialYearState();
-                        const newRoot = {
-                            ...rootState,
-                            years: {
+                    const newRoot = {
+                        ...rootState,
+                        years: {
                                 ...(rootState?.years || {}),
                                 [yearKey]: ensureStateShape({ ...updatedYear, settings: { ...(state?.settings || {}), ...patch } })
-                            }
-                        };
-                        saveRootState(newRoot);
+                        }
+                    };
+                    saveRootState(newRoot);
                     } catch (error) {
                         console.error('Error in updateSettings:', error);
                     }
@@ -817,10 +817,10 @@
                             <div className="relative">
                                 {user ? (
                                     <>
-                                        <button
-                                            onClick={() => setShowUserMenu(!showUserMenu)}
-                                            className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            aria-label="User menu"
+                                <button
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="User menu"
                                             title={`Signed in as: ${currentUsername}`}
                                         >
                                             {userProfilePicture ? (
@@ -833,11 +833,11 @@
                                                 <span className="text-lg">👤</span>
                                             )}
                                             <span className="text-sm font-semibold">{currentUsername}</span>
-                                        </button>
-                                        
-                                        {showUserMenu && (
+                                </button>
+                                
+                                {showUserMenu && (
                                             <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-64 fd-bg-surface border fd-border-default rounded-lg shadow-lg z-50">
-                                                <div className="p-2">
+                                        <div className="p-2">
                                                     <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default flex items-center space-x-3">
                                                         {userProfilePicture ? (
                                                             <img
@@ -854,38 +854,38 @@
                                                             <div className="font-semibold">{currentUsername}</div>
                                                             <div className="text-xs">{currentUserEmail}</div>
                                                         </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
+                                            </div>
+                                            <button
+                                                onClick={() => {
                                                             onShowSettings();
-                                                            setShowUserMenu(false);
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
-                                                    >
+                                                        setShowUserMenu(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                            >
                                                         ⚙️ Settings
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
+                                            </button>
+                                            <button
+                                                onClick={() => {
                                                             onSignOut();
-                                                            setShowUserMenu(false);
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
-                                                    >
+                                                    setShowUserMenu(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                            >
                                                         🚪 Sign Out
-                                                    </button>
+                                            </button>
                                                 </div>
                                             </div>
                                         )}
                                     </>
                                 ) : (
-                                    <button
+                                            <button
                                         onClick={onShowAuthModal}
                                         className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         aria-label="Sign in"
                                         title="Sign in to save your data"
                                     >
                                         <span className="text-sm font-semibold">🔐 Sign In</span>
-                                    </button>
+                                            </button>
                                 )}
                             </div>
                             
@@ -902,24 +902,24 @@
 
                             {/* Cloud and Sync buttons hidden - auto-sync runs in background */}
                             <div className="hidden">
+                            <button
+                                onClick={onCloudConnect}
+                                className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                aria-label="Connect Cloud"
+                                title={cloudLinked ? 'Cloud Connected' : 'Connect Cloud'}
+                            >
+                                <span className="text-sm font-semibold">{cloudLinked ? 'Cloud ✓' : 'Connect Cloud'}</span>
+                            </button>
+                            {cloudLinked && (
                                 <button
-                                    onClick={onCloudConnect}
-                                    className={`inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border ${cloudLinked ? 'fd-border-success fd-text-success' : 'fd-border-default fd-text-default'} fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                                    aria-label="Connect Cloud"
-                                    title={cloudLinked ? 'Cloud Connected' : 'Connect Cloud'}
+                                    onClick={onCloudSync}
+                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    aria-label="Sync now"
+                                    title="Sync now"
                                 >
-                                    <span className="text-sm font-semibold">{cloudLinked ? 'Cloud ✓' : 'Connect Cloud'}</span>
+                                    <span className="text-sm font-semibold">Sync</span>
                                 </button>
-                                {cloudLinked && (
-                                    <button
-                                        onClick={onCloudSync}
-                                        className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        aria-label="Sync now"
-                                        title="Sync now"
-                                    >
-                                        <span className="text-sm font-semibold">Sync</span>
-                                    </button>
-                                )}
+                            )}
                             </div>
                             <button
                                 onClick={onToggleLang}
@@ -942,7 +942,7 @@
                     </div>
                 </div>
             </motion.header>
-        );
+            );
         });
 
         // Year Filter Component
@@ -1530,9 +1530,9 @@
         const getUserProfileData = async (userId) => {
             if (!db || !userId) {
                 console.log('getUserProfileData: No db or userId');
-                return null;
-            }
-            
+                    return null;
+                }
+                
             try {
                 const userDoc = await db.collection('userData').doc(userId).get();
                 if (userDoc.exists) {
@@ -1546,34 +1546,42 @@
                 return null;
             }
         };
-
+        
         // Firebase Firestore Cloud Storage
         const cloudLoadState = async () => {
             try {
                 if (!db) {
-                    console.log('Firestore not initialized');
+                    debug.error('Firestore not initialized');
                     return null;
                 }
                 
                 const userId = auth ? getCurrentUserId() : null;
                 if (!userId) {
-                    console.log('No user ID for cloud load');
+                    debug.warn('No user ID for cloud load');
                     return null;
                 }
-                console.log('Loading state from Firestore...');
+                
+                debug.log('📥 Loading state from Firestore for user:', userId);
                 const docRef = db.collection('userData').doc(userId);
                 const doc = await docRef.get();
                 
                 if (doc.exists) {
                     const data = doc.data();
-                    console.log('Loaded state from Firestore:', data);
+                    debug.log('✅ Loaded state from Firestore');
+                    debug.log('📦 Data structure:', {
+                        hasYears: !!data.years,
+                        yearCount: data.years ? Object.keys(data.years).length : 0,
+                        selectedYear: data.selectedYear,
+                        hasSettings: !!data.settings,
+                        lastUpdated: data.lastUpdated
+                    });
                     return data;
                 } else {
-                    console.log('No data found in Firestore for user:', userId);
+                    debug.log('📭 No data found in Firestore for user:', userId);
                     return null;
                 }
             } catch (error) {
-                console.error('Error loading from Firestore:', error);
+                debug.error('❌ Error loading from Firestore:', error);
                 return null;
             }
         };
@@ -1581,16 +1589,24 @@
         const cloudSaveState = async (data) => {
             try {
                 if (!db) {
-                    console.log('Firestore not initialized');
+                    debug.error('Firestore not initialized');
                     return false;
                 }
                 
                 const userId = auth ? getCurrentUserId() : null;
                 if (!userId) {
-                    console.log('No user ID for cloud save');
+                    debug.warn('No user ID for cloud save');
                     return false;
                 }
-                console.log('Saving state to Firestore:', data);
+                
+                debug.log('💾 Saving state to Firestore for user:', userId);
+                debug.log('📦 Data structure:', {
+                    hasYears: !!data.years,
+                    yearCount: data.years ? Object.keys(data.years).length : 0,
+                    selectedYear: data.selectedYear,
+                    hasSettings: !!data.settings
+                });
+                
                 const docRef = db.collection('userData').doc(userId);
                 await docRef.set({
                     ...data,
@@ -1598,10 +1614,10 @@
                     userId: userId
                 });
                 
-                console.log('Successfully saved to Firestore');
+                debug.log('✅ Successfully saved to Firestore');
                 return true;
             } catch (error) {
-                console.error('Error saving to Firestore:', error);
+                debug.error('❌ Error saving to Firestore:', error);
                 return false;
             }
         };
@@ -1653,6 +1669,67 @@
                 getDefaultSelectedYear: typeof getDefaultSelectedYear
             });
             console.log('Current user:', auth?.currentUser);
+        };
+        
+        // Debug sync status
+        window.debugSyncStatus = async () => {
+            console.log('🔍 Sync Status Check:');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            
+            // Check auth
+            const userId = auth ? getCurrentUserId() : null;
+            console.log('👤 User ID:', userId);
+            console.log('📧 User Email:', auth?.currentUser?.email);
+            console.log('🔐 Authenticated:', !!auth?.currentUser);
+            
+            // Check Firebase
+            console.log('🔥 Firebase initialized:', !!firebase.apps.length);
+            console.log('📚 Firestore available:', !!db);
+            console.log('🌐 Online:', navigator.onLine);
+            
+            // Check localStorage
+            if (userId) {
+                const localKey = `wowo-blip-office-visit-v2-${userId}`;
+                const localData = localStorage.getItem(localKey);
+                console.log('💾 LocalStorage key:', localKey);
+                console.log('💾 LocalStorage has data:', !!localData);
+                if (localData) {
+                    const parsed = JSON.parse(localData);
+                    console.log('💾 LocalStorage data:', {
+                        selectedYear: parsed.selectedYear,
+                        years: Object.keys(parsed.years || {}),
+                        settings: parsed.settings
+                    });
+                }
+            }
+            
+            // Check Firestore
+            if (userId && db) {
+                try {
+                    console.log('☁️ Checking Firestore...');
+                    const docRef = db.collection('userData').doc(userId);
+                    const doc = await docRef.get();
+                    console.log('☁️ Firestore has data:', doc.exists);
+                    if (doc.exists) {
+                        const data = doc.data();
+                        console.log('☁️ Firestore data:', {
+                            selectedYear: data.selectedYear,
+                            years: Object.keys(data.years || {}),
+                            settings: data.settings,
+                            lastUpdated: data.lastUpdated?.toDate?.()
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ Error checking Firestore:', error);
+                }
+            }
+            
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('💡 Tip: If data is not syncing, try:');
+            console.log('   1. Check Firestore rules allow read/write');
+            console.log('   2. Make sure you are signed in');
+            console.log('   3. Check browser console for errors');
+            console.log('   4. Try clicking the Sync button manually');
         };
 
         // Background Exchange Rate Updater
@@ -2428,33 +2505,51 @@
             } = useAppState();
 
             const [cloudLinked, setCloudLinked] = useState(false);
+            const [lastSyncTime, setLastSyncTime] = useState(null);
             
             // Firebase Authentication State Listener
             useEffect(() => {
                 if (!auth) {
-                    console.log('Firebase auth not initialized');
+                    debug.log('Firebase auth not initialized');
                     return;
                 }
                 
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
-                    console.log('Auth state changed:', user ? user.email : 'No user');
+                    debug.log('Auth state changed:', user ? user.email : 'No user');
                     setUser(user);
                     if (user) {
-                        console.log('User signed in:', user.email);
+                        debug.log('User signed in:', user.email);
                         setCloudLinked(true);
+                        
                         // Load user profile picture
-                        console.log('Loading profile data for user:', user.uid);
+                        debug.log('Loading profile data for user:', user.uid);
                         const profileData = await getUserProfileData(user.uid);
-                        console.log('Profile data loaded:', profileData);
+                        debug.log('Profile data loaded:', profileData);
                         setUserProfilePicture(profileData?.profilePicture || null);
+                        
+                        // Load cloud data immediately when user signs in
+                        debug.log('📥 Loading cloud data on auth...');
+                        try {
+                            const loaded = await cloudLoadState();
+                            if (loaded && typeof hydrateRoot === 'function') {
+                                debug.log('✅ Hydrating app with cloud data');
+                                hydrateRoot(loaded);
+                                setLastSyncTime(new Date());
+                                addToast('Data loaded from cloud', 'success', CONSTANTS.TOAST_DURATION_SHORT);
+                            } else {
+                                debug.log('📭 No cloud data found, using local state');
+                            }
+                        } catch (error) {
+                            debug.error('❌ Error loading cloud data on auth:', error);
+                        }
                     } else {
-                        console.log('User signed out');
+                        debug.log('User signed out');
                         setCloudLinked(false);
                         setUserProfilePicture(null);
                     }
                 });
                 return () => unsubscribe();
-            }, []);
+            }, [hydrateRoot, addToast]);
 
             // Load profile picture on mount if user is already authenticated
             useEffect(() => {
@@ -2497,15 +2592,15 @@
                     if (user && cloudLinked) {
                         debug.log('User authenticated, loading cloud data...');
                         try {
-                            const loaded = await cloudLoadState();
-                            if (loaded) {
+                        const loaded = await cloudLoadState();
+                        if (loaded) {
                                 debug.log('Loaded data from cloud:', loaded);
                                 if (typeof hydrateRoot === 'function') {
-                                    hydrateRoot(loaded);
-                                } else {
+                            hydrateRoot(loaded);
+                        } else {
                                     debug.error('hydrateRoot is not available');
-                                }
-                            } else {
+                        }
+                    } else {
                                 debug.log('No data found in cloud');
                             }
                         } catch (error) {
@@ -2555,9 +2650,9 @@
                 try {
                     setIsLoading(true);
                     setLoadingMessage('Connecting to cloud...');
-                    if (await cloudConnectViaPrompt()) {
-                        setCloudLinked(true);
-                        const loaded = await cloudLoadState();
+                if (await cloudConnectViaPrompt()) {
+                    setCloudLinked(true);
+                    const loaded = await cloudLoadState();
                         if (loaded) {
                             if (typeof hydrateRoot === 'function') {
                                 hydrateRoot(loaded);
@@ -2593,9 +2688,9 @@
                     }
                     
                     // First, save current state to cloud
-                    const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                     if (raw) {
-                        await cloudSaveState(JSON.parse(raw));
+                await cloudSaveState(JSON.parse(raw));
                         debug.log('✅ Saved to cloud');
                     }
                     
@@ -2603,6 +2698,7 @@
                     const loaded = await cloudLoadState();
                     if (loaded && typeof hydrateRoot === 'function') {
                         hydrateRoot(loaded);
+                        setLastSyncTime(new Date());
                         debug.log('✅ Loaded from cloud');
                     }
                     
@@ -2671,47 +2767,54 @@
 
             // Auto-save to cloud when state changes
             useEffect(() => {
-                console.log('🔄 Auto-save effect triggered. Cloud linked:', cloudLinked, 'User:', user?.email, 'State changed:', state);
+                debug.log('🔄 Auto-save effect triggered. Cloud linked:', cloudLinked, 'User:', user?.email);
                 
                 if (!cloudLinked || !user) {
-                    console.log('❌ Cloud not linked or user not authenticated, skipping auto-save');
+                    debug.log('❌ Cloud not linked or user not authenticated, skipping auto-save');
                     return;
                 }
                 
-                console.log('⏰ Setting up auto-save timer...');
+                if (!isOnline) {
+                    debug.log('📡 Offline, skipping auto-save');
+                    return;
+                }
+                
+                debug.log('⏰ Setting up auto-save timer...');
                 const timeoutId = setTimeout(async () => {
                     try {
                         const userId = auth ? getCurrentUserId() : null;
-                        console.log('👤 Current user ID:', userId);
+                        debug.log('👤 Current user ID:', userId);
                         
                         if (!userId) {
-                            console.log('❌ No user ID for auto-save');
+                            debug.log('❌ No user ID for auto-save');
                             return;
                         }
                         
-                        // Get the full root state from localStorage
-                        const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                        console.log('💾 Raw localStorage data:', raw);
-                        
-                        if (raw) {
-                            console.log('☁️ Auto-saving to cloud...');
-                            const data = JSON.parse(raw);
-                            console.log('📤 Data being saved:', data);
-                            const success = await cloudSaveState(data);
-                            console.log('✅ Auto-save result:', success);
+                        // Use current state directly instead of reading from localStorage
+                        if (state && state.years) {
+                            debug.log('☁️ Auto-saving current state to cloud...');
+                            debug.log('📤 State being saved:', state);
+                            const success = await cloudSaveState(state);
+                            debug.log('✅ Auto-save result:', success);
+                            
+                            if (success) {
+                                debug.log('✅ Data successfully saved to cloud');
+                    } else {
+                                debug.warn('⚠️ Auto-save returned false');
+                            }
                         } else {
-                            console.log('⚠️ No data to save in localStorage');
+                            debug.warn('⚠️ No valid state to save');
                         }
                     } catch (error) {
-                        console.error('❌ Error in auto-save:', error);
+                        debug.error('❌ Error in auto-save:', error);
                     }
-                }, 1000); // Debounce saves by 1 second
+                }, CONSTANTS.AUTO_SAVE_DELAY);
                 
                 return () => {
-                    console.log('🧹 Clearing auto-save timer');
+                    debug.log('🧹 Clearing auto-save timer');
                     clearTimeout(timeoutId);
                 };
-            }, [state, cloudLinked, user]);
+            }, [state, cloudLinked, user, isOnline]);
 
             // Periodic sync from cloud (every 2 minutes)
             useEffect(() => {
@@ -2725,8 +2828,8 @@
                     try {
                         perfMonitor.start('Periodic Cloud Sync');
                         debug.log('📥 Periodic sync: Loading state from cloud...');
-                        const loaded = await cloudLoadState();
-                        if (loaded) {
+                    const loaded = await cloudLoadState();
+                    if (loaded) {
                             debug.log('📥 Periodic sync: Loaded data from cloud');
                             
                             // Check if cloud data is newer than local data
@@ -2760,18 +2863,21 @@
                                             }
                                         };
                                         
-                                        console.log('📥 Ensured data has required years:', ensuredData);
+                                        debug.log('📥 Ensured data has required years:', ensuredData);
                                         hydrateRoot(ensuredData);
+                                        setLastSyncTime(new Date());
                                     } else {
                                         debug.log('⏭️ Local data is newer or same, skipping update');
                                     }
                                 } else {
                                     debug.log('📥 No local data, using cloud data');
                                     hydrateRoot(loaded);
+                                    setLastSyncTime(new Date());
                                 }
                             } else {
                                 debug.log('📥 No user ID, skipping timestamp check');
                                 hydrateRoot(loaded);
+                                setLastSyncTime(new Date());
                             }
                         } else {
                             debug.log('📥 Periodic sync: No data found in cloud');
@@ -2799,6 +2905,13 @@
                     {!isOnline && (
                         <div className="fixed top-0 left-0 right-0 bg-yellow-600 text-white text-center py-2 text-sm font-medium z-40">
                             📡 You are offline - Changes will sync when connection is restored
+                        </div>
+                    )}
+                    
+                    {/* Sync Status Indicator */}
+                    {user && lastSyncTime && (
+                        <div className="fixed bottom-4 right-4 bg-green-600 text-white text-xs px-3 py-2 rounded-full shadow-lg z-30 opacity-75">
+                            ✓ Synced {new Date(lastSyncTime).toLocaleTimeString()}
                         </div>
                     )}
                     
