@@ -182,12 +182,21 @@
         };
         
         // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        let auth, db;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            // Create fallback objects to prevent errors
+            auth = null;
+            db = null;
         }
-        
-        const auth = firebase.auth();
-        const db = firebase.firestore();
         // Safe framer-motion fallback if UMD global is unavailable
         const fm = window.framerMotion;
         const motionShim = new Proxy({}, { get: (_, tag) => (props) => React.createElement(tag, props, props.children) });
@@ -340,22 +349,26 @@
 
         // Firebase Authentication System
         const getCurrentUserId = () => {
+            if (!auth) return null;
             const user = auth.currentUser;
             return user ? user.uid : null;
         };
 
         const getCurrentUsername = () => {
+            if (!auth) return 'Guest';
             const user = auth.currentUser;
             return user ? (user.displayName || user.email.split('@')[0]) : 'Guest';
         };
 
         const getCurrentUserEmail = () => {
+            if (!auth) return null;
             const user = auth.currentUser;
             return user ? user.email : null;
         };
 
         const signOut = async () => {
             try {
+                if (!auth) return;
                 await auth.signOut();
                 // Clear local storage
                 localStorage.clear();
@@ -636,6 +649,26 @@
                                 )}
                             </div>
                             
+                            {/* Manual sync button for testing */}
+                            {user && (
+                                <button
+                                    onClick={async () => {
+                                        console.log('🔄 Manual sync triggered');
+                                        const loaded = await cloudLoadState();
+                                        if (loaded) {
+                                            console.log('📥 Manual sync: Loaded data from cloud');
+                                            hydrateRoot(loaded);
+                                        } else {
+                                            console.log('📥 Manual sync: No data found in cloud');
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-2 px-3 py-2 h-[46px] rounded-lg border fd-border-default fd-text-default fd-hover-surface transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    title="Manual sync from cloud"
+                                >
+                                    <span className="text-sm font-semibold">🔄 Sync</span>
+                                </button>
+                            )}
+
                             {/* Cloud and Sync buttons hidden - auto-sync runs in background */}
                             <div className="hidden">
                                 <button
@@ -1117,6 +1150,11 @@
 
         // Firebase Firestore Cloud Storage
         const cloudLoadState = async () => {
+            if (!db) {
+                console.log('Firestore not initialized');
+                return null;
+            }
+            
             const userId = getCurrentUserId();
             if (!userId) {
                 console.log('No user ID for cloud load');
@@ -1143,6 +1181,11 @@
         };
         
         const cloudSaveState = async (data) => {
+            if (!db) {
+                console.log('Firestore not initialized');
+                return false;
+            }
+            
             const userId = getCurrentUserId();
             if (!userId) {
                 console.log('No user ID for cloud save');
@@ -1289,6 +1332,10 @@
                 setError('');
 
                 try {
+                    if (!auth) {
+                        throw new Error('Authentication not available. Please refresh the page.');
+                    }
+                    
                     const email = emailRef.current?.value || '';
                     const password = passwordRef.current?.value || '';
                     const confirmPassword = confirmPasswordRef.current?.value || '';
@@ -1512,6 +1559,11 @@
             
             // Firebase Authentication State Listener
             useEffect(() => {
+                if (!auth) {
+                    console.log('Firebase auth not initialized');
+                    return;
+                }
+                
                 const unsubscribe = auth.onAuthStateChanged((user) => {
                     setUser(user);
                     if (user) {
@@ -1581,48 +1633,63 @@
 
             // Auto-save to cloud when state changes
             useEffect(() => {
-                console.log('Auto-save effect triggered. Cloud linked:', cloudLinked, 'State:', state);
+                console.log('🔄 Auto-save effect triggered. Cloud linked:', cloudLinked, 'User:', user?.email, 'State changed:', state);
                 
-                if (!cloudLinked) {
-                    console.log('Cloud not linked, skipping auto-save');
+                if (!cloudLinked || !user) {
+                    console.log('❌ Cloud not linked or user not authenticated, skipping auto-save');
                     return;
                 }
                 
-                console.log('Setting up auto-save timer...');
+                console.log('⏰ Setting up auto-save timer...');
                 const timeoutId = setTimeout(async () => {
                     const userId = getCurrentUserId();
+                    console.log('👤 Current user ID:', userId);
+                    
                     const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
-                    console.log('Raw localStorage data:', raw);
+                    console.log('💾 Raw localStorage data:', raw);
                     
                     if (raw) {
-                        console.log('Auto-saving to cloud...');
+                        console.log('☁️ Auto-saving to cloud...');
                         const data = JSON.parse(raw);
+                        console.log('📤 Data being saved:', data);
                         const success = await cloudSaveState(data);
-                        console.log('Auto-save result:', success);
+                        console.log('✅ Auto-save result:', success);
                     } else {
-                        console.log('No data to save in localStorage');
+                        console.log('⚠️ No data to save in localStorage');
                     }
                 }, 1000); // Debounce saves by 1 second
                 
                 return () => {
-                    console.log('Clearing auto-save timer');
+                    console.log('🧹 Clearing auto-save timer');
                     clearTimeout(timeoutId);
                 };
-            }, [state, cloudLinked]);
+            }, [state, cloudLinked, user]);
 
-            // Periodic sync from cloud (every 30 seconds)
+            // Periodic sync from cloud (every 10 seconds)
             useEffect(() => {
-                if (!cloudLinked) return;
+                if (!cloudLinked || !user) {
+                    console.log('❌ Cloud not linked or user not authenticated, skipping periodic sync');
+                    return;
+                }
                 
+                console.log('🔄 Starting periodic sync from cloud...');
                 const intervalId = setInterval(async () => {
+                    console.log('📥 Periodic sync: Loading state from cloud...');
                     const loaded = await cloudLoadState();
                     if (loaded) {
+                        console.log('📥 Periodic sync: Loaded data from cloud, updating app state');
+                        console.log('📥 Data loaded:', loaded);
                         hydrateRoot(loaded);
+                    } else {
+                        console.log('📥 Periodic sync: No data found in cloud');
                     }
-                }, 30000); // Check for updates every 30 seconds
+                }, 10000); // Check for updates every 10 seconds
                 
-                return () => clearInterval(intervalId);
-            }, [cloudLinked, hydrateRoot]);
+                return () => {
+                    console.log('🛑 Stopping periodic sync');
+                    clearInterval(intervalId);
+                };
+            }, [cloudLinked, user, hydrateRoot]);
 
 
             return (
