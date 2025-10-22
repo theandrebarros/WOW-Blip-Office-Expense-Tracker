@@ -1145,6 +1145,23 @@
                         <span>{t('exportCsv')}</span>
                     </motion.button>
                 </div>
+                
+                {/* Footer Credit */}
+                <div className="mt-8 pt-6 border-t fd-border-default">
+                    <div className="text-center">
+                        <p className="text-sm fd-text-subtle">
+                            © {new Date().getFullYear()} WOW Blip Tracker • Designed and developed by{' '}
+                            <a 
+                                href="https://flutter.enterprise.slack.com/team/UGP01BN69" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="fd-text-default hover:fd-text-strong underline transition-colors"
+                            >
+                                André Barros
+                            </a>
+                        </p>
+                    </div>
+                </div>
             </motion.footer>
         );
 
