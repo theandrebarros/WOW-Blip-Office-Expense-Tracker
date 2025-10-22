@@ -10,10 +10,11 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@latest/dist/framer-motion.umd.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
@@ -182,7 +183,7 @@
         };
         
         // Initialize Firebase
-        let auth, db;
+        let auth, db, storage;
         try {
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
@@ -190,12 +191,14 @@
             
             auth = firebase.auth();
             db = firebase.firestore();
+            storage = firebase.storage();
             console.log('Firebase initialized successfully');
         } catch (error) {
             console.error('Firebase initialization error:', error);
             // Create fallback objects to prevent errors
             auth = null;
             db = null;
+            storage = null;
         }
         // Safe framer-motion fallback if UMD global is unavailable
         const fm = window.framerMotion;
@@ -583,7 +586,7 @@
         };
 
         // Header Component
-        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync, user, onSignOut, onShowAuthModal }) => {
+        const Header = ({ isDark, onToggleTheme, lang, onToggleLang, t, onCloudConnect, cloudLinked, onCloudSync, user, onSignOut, onShowAuthModal, onShowSettings, userProfilePicture }) => {
             const [showUserMenu, setShowUserMenu] = useState(false);
             const currentUsername = getCurrentUsername();
             const currentUserEmail = getCurrentUserEmail();
@@ -614,16 +617,47 @@
                                             aria-label="User menu"
                                             title={`Signed in as: ${currentUsername}`}
                                         >
-                                            <span className="text-sm font-semibold">👤 {currentUsername}</span>
+                                            {userProfilePicture ? (
+                                                <img
+                                                    src={userProfilePicture}
+                                                    alt="Profile"
+                                                    className="h-6 w-6 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-lg">👤</span>
+                                            )}
+                                            <span className="text-sm font-semibold">{currentUsername}</span>
                                         </button>
                                         
                                         {showUserMenu && (
                                             <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-64 fd-bg-surface border fd-border-default rounded-lg shadow-lg z-50">
                                                 <div className="p-2">
-                                                    <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default">
-                                                        <div className="font-semibold">{currentUsername}</div>
-                                                        <div className="text-xs">{currentUserEmail}</div>
+                                                    <div className="px-3 py-2 text-xs fd-text-subtle border-b fd-border-default flex items-center space-x-3">
+                                                        {userProfilePicture ? (
+                                                            <img
+                                                                src={userProfilePicture}
+                                                                alt="Profile"
+                                                                className="h-8 w-8 rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                                                <span className="text-sm">👤</span>
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <div className="font-semibold">{currentUsername}</div>
+                                                            <div className="text-xs">{currentUserEmail}</div>
+                                                        </div>
                                                     </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            onShowSettings();
+                                                            setShowUserMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm fd-text-default hover:fd-hover-surface rounded"
+                                                    >
+                                                        ⚙️ Settings
+                                                    </button>
                                                     <button
                                                         onClick={() => {
                                                             onSignOut();
@@ -1165,6 +1199,75 @@
             </motion.footer>
         );
 
+        // Profile Picture Management
+        const uploadProfilePicture = async (file, userId) => {
+            if (!storage || !userId) return null;
+            
+            try {
+                // Create a reference to the file
+                const fileName = `profile-pictures/${userId}/${Date.now()}_${file.name}`;
+                const storageRef = storage.ref().child(fileName);
+                
+                // Upload the file
+                const snapshot = await storageRef.put(file);
+                
+                // Get the download URL
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                // Update user document in Firestore (use set with merge to create if doesn't exist)
+                await db.collection('userData').doc(userId).set({
+                    profilePicture: downloadURL,
+                    updatedAt: new Date()
+                }, { merge: true });
+                
+                console.log('Profile picture uploaded successfully:', downloadURL);
+                return downloadURL;
+            } catch (error) {
+                console.error('Error uploading profile picture:', error);
+                return null;
+            }
+        };
+
+        const deleteProfilePicture = async (userId) => {
+            if (!storage || !db || !userId) return false;
+            
+            try {
+                // Get current user data
+                const userDoc = await db.collection('userData').doc(userId).get();
+                const userData = userDoc.data();
+                
+                if (userData?.profilePicture) {
+                    // Delete from Storage
+                    const imageRef = storage.refFromURL(userData.profilePicture);
+                    await imageRef.delete();
+                }
+                
+                // Remove from Firestore (use set with merge)
+                await db.collection('userData').doc(userId).set({
+                    profilePicture: null,
+                    updatedAt: new Date()
+                }, { merge: true });
+                
+                console.log('Profile picture deleted successfully');
+                return true;
+            } catch (error) {
+                console.error('Error deleting profile picture:', error);
+                return false;
+            }
+        };
+
+        const getUserProfileData = async (userId) => {
+            if (!db || !userId) return null;
+            
+            try {
+                const userDoc = await db.collection('userData').doc(userId).get();
+                return userDoc.exists ? userDoc.data() : null;
+            } catch (error) {
+                console.error('Error getting user profile data:', error);
+                return null;
+            }
+        };
+
         // Firebase Firestore Cloud Storage
         const cloudLoadState = async () => {
             if (!db) {
@@ -1321,6 +1424,246 @@
                 clearInterval(intervalId);
                 clearInterval(fallbackIntervalId);
             };
+        };
+
+        // User Settings Modal Component
+        const UserSettingsModal = ({ isOpen, onClose, user, onProfileUpdate }) => {
+            const [profileData, setProfileData] = React.useState(null);
+            const [isLoading, setIsLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
+            const [previewUrl, setPreviewUrl] = React.useState(null);
+            const fileInputRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (isOpen && user) {
+                    loadUserProfile();
+                }
+            }, [isOpen, user]);
+
+            const loadUserProfile = async () => {
+                if (!user) return;
+                setIsLoading(true);
+                try {
+                    const data = await getUserProfileData(user.uid);
+                    setProfileData(data);
+                    setPreviewUrl(data?.profilePicture || null);
+                } catch (error) {
+                    console.error('Error loading profile:', error);
+                    setError('Failed to load profile data');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleFileSelect = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        setError('Please select an image file');
+                        return;
+                    }
+                    
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        setError('Image must be smaller than 5MB');
+                        return;
+                    }
+                    
+                    // Create preview URL
+                    const url = URL.createObjectURL(file);
+                    setPreviewUrl(url);
+                    setError('');
+                }
+            };
+
+            const handleUpload = async () => {
+                if (!user || !fileInputRef.current?.files[0]) {
+                    console.log('No user or file selected');
+                    return;
+                }
+                
+                setIsLoading(true);
+                setError('');
+                
+                try {
+                    const file = fileInputRef.current.files[0];
+                    console.log('Starting upload for user:', user.uid, 'File:', file.name);
+                    
+                    const downloadURL = await uploadProfilePicture(file, user.uid);
+                    console.log('Upload result:', downloadURL);
+                    
+                    if (downloadURL) {
+                        setProfileData(prev => ({ ...prev, profilePicture: downloadURL }));
+                        setPreviewUrl(downloadURL);
+                        onProfileUpdate?.(downloadURL);
+                        setError('');
+                        // Clear the file input after successful upload
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
+                        console.log('Profile picture updated successfully');
+                    } else {
+                        setError('Failed to upload image - no URL returned');
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    setError(`Failed to upload image: ${error.message}`);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleDelete = async () => {
+                if (!user) return;
+                
+                setIsLoading(true);
+                setError('');
+                
+                try {
+                    const success = await deleteProfilePicture(user.uid);
+                    if (success) {
+                        setProfileData(prev => ({ ...prev, profilePicture: null }));
+                        setPreviewUrl(null);
+                        onProfileUpdate?.(null);
+                        setError('');
+                    } else {
+                        setError('Failed to delete image');
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    setError('Failed to delete image');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black bg-opacity-90" onClick={onClose} />
+                    <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                                    Profile Settings
+                                </h2>
+                                <button
+                                    onClick={onClose}
+                                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                >
+                                    <span className="sr-only">Close</span>
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {isLoading && (
+                                <div className="flex items-center justify-center py-4">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 text-red-700 dark:text-red-300 rounded">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="space-y-6">
+                                {/* Profile Picture Section */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Profile Picture
+                                    </label>
+                                    
+                                    <div className="flex items-center space-x-4">
+                                        {/* Current/Preview Image */}
+                                        <div className="flex-shrink-0">
+                                            {previewUrl ? (
+                                                <img
+                                                    src={previewUrl}
+                                                    alt="Profile preview"
+                                                    className="h-20 w-20 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600"
+                                                />
+                                            ) : (
+                                                <div className="h-20 w-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                                    <span className="text-2xl">👤</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Upload Controls */}
+                                        <div className="flex-1 space-y-2">
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileSelect}
+                                                className="hidden"
+                                            />
+                                            
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isLoading}
+                                                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                                                >
+                                                    Choose Image
+                                                </button>
+                                                
+                                                {previewUrl && !profileData?.profilePicture && (
+                                                    <button
+                                                        onClick={handleUpload}
+                                                        disabled={isLoading || !fileInputRef.current?.files[0]}
+                                                        className="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                                                    >
+                                                        {isLoading ? 'Uploading...' : 'Upload'}
+                                                    </button>
+                                                )}
+                                                
+                                                {profileData?.profilePicture && (
+                                                    <button
+                                                        onClick={handleDelete}
+                                                        disabled={isLoading}
+                                                        className="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                Max 5MB. JPG, PNG, or GIF.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* User Info */}
+                                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                    <div className="space-y-2">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Email
+                                            </label>
+                                            <p className="text-sm text-gray-900 dark:text-white">{user?.email}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                User ID
+                                            </label>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{user?.uid}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         // Authentication Modal Component
@@ -1513,6 +1856,8 @@
         const App = () => {
             const [user, setUser] = useState(null);
             const [showAuthModal, setShowAuthModal] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [userProfilePicture, setUserProfilePicture] = useState(null);
             const [isDark, setIsDark] = useState(() => {
                 try {
                     const saved = localStorage.getItem('fd-theme-mode');
@@ -1581,14 +1926,18 @@
                     return;
                 }
                 
-                const unsubscribe = auth.onAuthStateChanged((user) => {
+                const unsubscribe = auth.onAuthStateChanged(async (user) => {
                     setUser(user);
                     if (user) {
                         console.log('User signed in:', user.email);
                         setCloudLinked(true);
+                        // Load user profile picture
+                        const profileData = await getUserProfileData(user.uid);
+                        setUserProfilePicture(profileData?.profilePicture || null);
                     } else {
                         console.log('User signed out');
                         setCloudLinked(false);
+                        setUserProfilePicture(null);
                     }
                 });
                 return () => unsubscribe();
@@ -1630,6 +1979,15 @@
 
             const handleSignOut = useCallback(async () => {
                 await signOut();
+            }, []);
+
+            const handleShowSettings = useCallback(() => {
+                setShowSettingsModal(true);
+            }, []);
+
+            const handleProfileUpdate = useCallback((profilePictureUrl) => {
+                console.log('Profile picture updated:', profilePictureUrl);
+                setUserProfilePicture(profilePictureUrl);
             }, []);
 
             const connectCloud = useCallback(async () => {
@@ -1723,6 +2081,8 @@
                         user={user}
                         onSignOut={handleSignOut}
                         onShowAuthModal={handleShowAuthModal}
+                        onShowSettings={handleShowSettings}
+                        userProfilePicture={userProfilePicture}
                     />
                     <YearFilter 
                         selectedYear={selectedYear}
@@ -1833,6 +2193,14 @@
                         isOpen={showAuthModal}
                         onClose={() => setShowAuthModal(false)}
                         onAuthSuccess={handleAuthSuccess}
+                    />
+
+                    {/* User Settings Modal */}
+                    <UserSettingsModal 
+                        isOpen={showSettingsModal}
+                        onClose={() => setShowSettingsModal(false)}
+                        user={user}
+                        onProfileUpdate={handleProfileUpdate}
                     />
                 </div>
             );
