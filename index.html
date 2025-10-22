@@ -769,7 +769,7 @@
                                     {formatCurrency(calculations.totalAvailable)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.totalAvailable / (state?.settings?.gbpRate || 0.85))}
+                                    {formatGBP(calculations.totalAvailable * (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-success">€</span>
@@ -787,7 +787,7 @@
                                     {formatCurrency(calculations.totalSpent)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.totalSpent / (state?.settings?.gbpRate || 0.85))}
+                                    {formatGBP(calculations.totalSpent * (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             <span aria-hidden className="h-8 w-8 fd-text-warning">⚠️</span>
@@ -813,7 +813,7 @@
                                     {formatCurrency(calculations.annualBalance)}
                                 </p>
                                 <p className="text-xs fd-text-subtle tabular-nums">
-                                    {formatGBP(calculations.annualBalance / (state?.settings?.gbpRate || 0.85))}
+                                    {formatGBP(calculations.annualBalance * (state?.settings?.gbpRate || 0.85))}
                                 </p>
                             </div>
                             {calculations.annualBalance >= 0 ? (
@@ -1050,7 +1050,7 @@
                                     }`}>
                                         {formatCurrency(remaining)}
                                     </span>
-                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining / (gbpRate || 0.85))}</span>
+                                    <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(remaining * (gbpRate || 0.85))}</span>
                                 </div>
                             </div>
                         </div>
@@ -1059,7 +1059,7 @@
                             <span className="text-sm fd-text-subtle">{t('quarterTotal')}</span>
                             <div className="flex flex-col items-end">
                                 <span className="font-semibold tabular-nums fd-text-strong">{formatCurrency(quarter.spent)}</span>
-                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent / (gbpRate || 0.85))}</span>
+                                <span className="text-xs fd-text-subtle tabular-nums">{formatGBP(quarter.spent * (gbpRate || 0.85))}</span>
                             </div>
                         </div>
 
