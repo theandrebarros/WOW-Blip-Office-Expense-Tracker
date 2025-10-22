@@ -651,10 +651,30 @@
 
             const hydrateRoot = useCallback((newRootState) => {
                 console.log('Hydrating root state with:', newRootState);
-                setRootState(newRootState);
+                
+                // Validate that the new state has the required structure
+                if (!newRootState || !newRootState.years || typeof newRootState.years !== 'object') {
+                    console.error('❌ Invalid state structure, skipping hydration');
+                    return;
+                }
+                
+                // Ensure minimum required years exist
+                const currentYear = new Date().getFullYear();
+                const nextYear = currentYear + 1;
+                const ensuredState = {
+                    ...newRootState,
+                    years: {
+                        ...newRootState.years,
+                        [String(currentYear)]: newRootState.years[String(currentYear)] || createInitialYearState(),
+                        [String(nextYear)]: newRootState.years[String(nextYear)] || createInitialYearState()
+                    }
+                };
+                
+                console.log('✅ Ensured state structure:', ensuredState);
+                setRootState(ensuredState);
                 const userId = auth ? getCurrentUserId() : null;
                 if (userId) {
-                    localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(newRootState));
+                    localStorage.setItem(`wowo-blip-office-visit-v2-${userId}`, JSON.stringify(ensuredState));
                 }
             }, []);
 
@@ -1028,8 +1048,17 @@
             const homeRef = React.useRef(null);
             const hotelRef = React.useRef(null);
             const [isFocused, setIsFocused] = React.useState(false);
+            const [lastUserInput, setLastUserInput] = React.useState({});
 
             useEffect(() => {
+                console.log('🔄 QuarterCard useEffect triggered', { 
+                    isFocused, 
+                    quarterKey, 
+                    flightToOffice: quarter.details?.flightToOffice,
+                    flightHome: quarter.details?.flightHome,
+                    hotel: quarter.details?.hotel
+                });
+                
                 const isFocusedEl = (ref) => {
                     if (!ref || !ref.current) return false;
                     const activeEl = document.activeElement;
@@ -1048,29 +1077,43 @@
                                      (homeRef.current?.getAttribute('data-mobile-typing') === 'true') ||
                                      (hotelRef.current?.getAttribute('data-mobile-typing') === 'true');
                 
+                console.log('🎯 Focus state:', { isFocused, isInputFocused, isMobileTyping });
+                
                 // Only update if not focused, not typing, and the value has actually changed
                 if (!isFocused && !isInputFocused && !isMobileTyping) {
+                    console.log('✅ Updating input values');
                     if (officeRef.current) {
                         const newValue = toDisplay(quarter.details?.flightToOffice);
-                        if (officeRef.current.value !== newValue) {
+                        const currentValue = officeRef.current.value;
+                        const userValue = lastUserInput.flightToOffice;
+                        console.log('🏢 Office input:', { currentValue, newValue, userValue, willUpdate: currentValue !== newValue && currentValue !== userValue });
+                        if (currentValue !== newValue && currentValue !== userValue) {
                             officeRef.current.value = newValue;
                         }
                     }
                     if (homeRef.current) {
                         const newValue = toDisplay(quarter.details?.flightHome);
-                        if (homeRef.current.value !== newValue) {
+                        const currentValue = homeRef.current.value;
+                        const userValue = lastUserInput.flightHome;
+                        console.log('🏠 Home input:', { currentValue, newValue, userValue, willUpdate: currentValue !== newValue && currentValue !== userValue });
+                        if (currentValue !== newValue && currentValue !== userValue) {
                             homeRef.current.value = newValue;
                         }
                     }
                     if (hotelRef.current) {
                         const num = Number(quarter.details?.hotel ?? 0);
                         const newValue = num ? num.toFixed(2) : '';
-                        if (hotelRef.current.value !== newValue) {
+                        const currentValue = hotelRef.current.value;
+                        const userValue = lastUserInput.hotel;
+                        console.log('🏨 Hotel input:', { currentValue, newValue, userValue, willUpdate: currentValue !== newValue && currentValue !== userValue });
+                        if (currentValue !== newValue && currentValue !== userValue) {
                             hotelRef.current.value = newValue;
                         }
                     }
+                } else {
+                    console.log('❌ Skipping input updates due to focus/typing state');
                 }
-            }, [syncKey, quarter.details?.flightToOffice, quarter.details?.flightHome, quarter.details?.hotel, gbpMode, gbpRate]);
+            }, [syncKey, quarter.details?.flightToOffice, quarter.details?.flightHome, quarter.details?.hotel, gbpMode, gbpRate, isFocused]);
 
             const handleChange = () => {
                 // Uncontrolled while typing; no-op to keep IME composition stable
@@ -1089,6 +1132,16 @@
                     const eur = field === 'hotel' ? validation.value : (gbpMode ? (validation.value / gbpRate) : validation.value);
                     console.log('💰 Converting to EUR:', eur);
                     onChangeDetail(quarterKey, field, eur.toFixed(2));
+                    // Track user input to prevent override
+                    setLastUserInput(prev => ({ ...prev, [field]: raw }));
+                    // Clear user input tracking after 5 seconds
+                    setTimeout(() => {
+                        setLastUserInput(prev => {
+                            const newPrev = { ...prev };
+                            delete newPrev[field];
+                            return newPrev;
+                        });
+                    }, 5000);
                 } else {
                     console.log('❌ Validation failed, restoring value');
                     // If validation fails, restore the current value
@@ -2271,6 +2324,7 @@
                             return;
                         }
                         
+                        // Get the full root state from localStorage
                         const raw = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
                         console.log('💾 Raw localStorage data:', raw);
                         
@@ -2307,16 +2361,60 @@
                         console.log('📥 Periodic sync: Loading state from cloud...');
                         const loaded = await cloudLoadState();
                         if (loaded) {
-                            console.log('📥 Periodic sync: Loaded data from cloud, updating app state');
+                            console.log('📥 Periodic sync: Loaded data from cloud');
                             console.log('📥 Data loaded:', loaded);
-                            hydrateRoot(loaded);
+                            
+                            // Check if cloud data is newer than local data
+                            const userId = auth ? getCurrentUserId() : null;
+                            if (userId) {
+                                const localData = localStorage.getItem(`wowo-blip-office-visit-v2-${userId}`);
+                                if (localData) {
+                                    const local = JSON.parse(localData);
+                                    const cloudTimestamp = loaded.lastUpdated?.toDate?.() || new Date(0);
+                                    const localTimestamp = local.lastUpdated?.toDate?.() || new Date(0);
+                                    
+                                    console.log('⏰ Timestamp comparison:', {
+                                        cloud: cloudTimestamp,
+                                        local: localTimestamp,
+                                        cloudNewer: cloudTimestamp > localTimestamp
+                                    });
+                                    
+                                    // Only update if cloud data is newer
+                                    if (cloudTimestamp > localTimestamp) {
+                                        console.log('📥 Cloud data is newer, updating app state');
+                                        
+                                        // Ensure cloud data has minimum required years
+                                        const currentYear = new Date().getFullYear();
+                                        const nextYear = currentYear + 1;
+                                        const ensuredData = {
+                                            ...loaded,
+                                            years: {
+                                                ...loaded.years,
+                                                [String(currentYear)]: loaded.years?.[String(currentYear)] || createInitialYearState(),
+                                                [String(nextYear)]: loaded.years?.[String(nextYear)] || createInitialYearState()
+                                            }
+                                        };
+                                        
+                                        console.log('📥 Ensured data has required years:', ensuredData);
+                                        hydrateRoot(ensuredData);
+                                    } else {
+                                        console.log('📥 Local data is newer or same, skipping update');
+                                    }
+                                } else {
+                                    console.log('📥 No local data, using cloud data');
+                                    hydrateRoot(loaded);
+                                }
+                            } else {
+                                console.log('📥 No user ID, skipping timestamp check');
+                                hydrateRoot(loaded);
+                            }
                         } else {
                             console.log('📥 Periodic sync: No data found in cloud');
                         }
                     } catch (error) {
                         console.error('❌ Error in periodic sync:', error);
                     }
-                }, 10000); // Check for updates every 10 seconds
+                }, 30000); // Check for updates every 30 seconds
                 
                 return () => {
                     console.log('🛑 Stopping periodic sync');
