@@ -1257,11 +1257,21 @@
         };
 
         const getUserProfileData = async (userId) => {
-            if (!db || !userId) return null;
+            if (!db || !userId) {
+                console.log('getUserProfileData: No db or userId', { db: !!db, userId });
+                return null;
+            }
             
             try {
+                console.log('getUserProfileData: Fetching data for user:', userId);
                 const userDoc = await db.collection('userData').doc(userId).get();
-                return userDoc.exists ? userDoc.data() : null;
+                console.log('getUserProfileData: Document exists:', userDoc.exists);
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    console.log('getUserProfileData: Document data:', data);
+                    return data;
+                }
+                return null;
             } catch (error) {
                 console.error('Error getting user profile data:', error);
                 return null;
@@ -1927,12 +1937,15 @@
                 }
                 
                 const unsubscribe = auth.onAuthStateChanged(async (user) => {
+                    console.log('Auth state changed:', user ? user.email : 'No user');
                     setUser(user);
                     if (user) {
                         console.log('User signed in:', user.email);
                         setCloudLinked(true);
                         // Load user profile picture
+                        console.log('Loading profile data for user:', user.uid);
                         const profileData = await getUserProfileData(user.uid);
+                        console.log('Profile data loaded:', profileData);
                         setUserProfilePicture(profileData?.profilePicture || null);
                     } else {
                         console.log('User signed out');
@@ -1942,6 +1955,21 @@
                 });
                 return () => unsubscribe();
             }, []);
+
+            // Load profile picture on mount if user is already authenticated
+            useEffect(() => {
+                const loadProfileOnMount = async () => {
+                    if (user && !userProfilePicture) {
+                        console.log('Loading profile picture on mount for user:', user.uid);
+                        const profileData = await getUserProfileData(user.uid);
+                        console.log('Profile data on mount:', profileData);
+                        if (profileData?.profilePicture) {
+                            setUserProfilePicture(profileData.profilePicture);
+                        }
+                    }
+                };
+                loadProfileOnMount();
+            }, [user, userProfilePicture]);
             
             useEffect(() => {
                 const cleanup = startBackgroundRateUpdater();
