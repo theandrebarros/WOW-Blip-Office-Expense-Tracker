@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!--
+  Dark mode is dual-activated:
+    - class="dark" on <html>  →  enables Tailwind's dark: utility prefix
+    - data-mode="dark" on <body>  →  activates Formation dark token overrides
+  When toggling dark mode at runtime, set/remove both attributes together.
+-->
+<html lang="pt-PT" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOW Expense Tracker</title>
+    <link rel="icon" href="https://www.blip.pt/images/favicon.png" type="image/png">
+</head>
+<body class="min-h-screen fd-bg-base fd-text-default" data-theme="fanduel" data-mode="dark">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

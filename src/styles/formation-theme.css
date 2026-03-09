@@ -1,0 +1,323 @@
+/**
+ * Formation Design System Tokens
+ * Source: @fanduel/formation-tokens v1.6.0
+ *
+ * Usage:
+ *   Apply  data-theme="fanduel"          on <body> for light mode
+ *   Apply  data-theme="fanduel"
+ *          data-mode="dark"              on <body> for dark mode
+ *
+ * All --fd-colors-*, --fd-space-*, --fd-fonts-*, --fd-radii-* variables
+ * are resolved here. No npm package required.
+ */
+
+/* ============================================================
+   LIGHT MODE  —  [data-theme="fanduel"]
+   ============================================================ */
+[data-theme="fanduel"] {
+
+  /* --- Backgrounds --- */
+  --fd-colors-background-base:          #EAF0F6;
+  --fd-colors-background-surface:       #ffffff;
+  --fd-colors-background-layer:         #F7FBFF;
+  --fd-colors-background-accent:        #0a0a0a0d;
+  --fd-colors-background-primary:       #0070EB;
+  --fd-colors-background-secondary:     #184C8B;
+  --fd-colors-background-promotional:   #011638;
+  --fd-colors-background-hover:         #EAF4FF;
+  --fd-colors-background-active:        #0070EB;
+  --fd-colors-background-disabled:      #EAF0F6;
+  --fd-colors-background-transparent:   #ffffff00;
+
+  /* --- Content (Text) --- */
+  --fd-colors-content-default:          #1C1D1D;
+  --fd-colors-content-strong:           #05285A;
+  --fd-colors-content-subtle:           #6A6F73;
+  --fd-colors-content-disabled:         #0a0a0a33;
+  --fd-colors-content-on-dark:          #ffffff;
+  --fd-colors-content-on-light:         #05285A;
+
+  /* --- Borders --- */
+  --fd-colors-border-default:           #B0B7BF;
+  --fd-colors-border-subtle:            #C6D3E1;
+  --fd-colors-border-active:            #0070EB;
+  --fd-colors-border-disabled:          #0a0a0a1a;
+  --fd-colors-border-inverse:           #ffffff;
+
+  /* --- Links --- */
+  --fd-colors-link-default-base:        #0070EB;
+  --fd-colors-link-default-hover:       #004EA3;
+  --fd-colors-link-destructive-base:    #D22839;
+  --fd-colors-link-inverse-default-base: #ffffff;
+  --fd-colors-link-inverse-default-hover: #C8E2FF;
+
+  /* --- Product / Brand --- */
+  --fd-colors-product-colors-primary:       #0070EB;
+  --fd-colors-product-colors-primary-l-1:   #2B90FF;
+  --fd-colors-product-colors-primary-l-2:   #64AEFF;
+  --fd-colors-product-colors-primary-d-1:   #005FC8;
+  --fd-colors-product-colors-primary-d-2:   #004EA3;
+  --fd-colors-product-colors-secondary:     #184C8B;
+  --fd-colors-brand-tertiary-default:       #FFDC2E;
+  --fd-colors-brand-tertiary-tint:          #FFF8D9;
+  --fd-colors-brand-tertiary-shade:         #D78027;
+  --fd-colors-brand-gradient-color-stops-start: #005FC8;
+  --fd-colors-brand-gradient-color-stops-end:   #003D81;
+
+  /* --- System: Positive (Success / Green) --- */
+  --fd-colors-system-positive-background-default: #128000;
+  --fd-colors-system-positive-background-subtle:  #E9F8EF;
+  --fd-colors-system-positive-border-default:     #128000;
+  --fd-colors-system-positive-content-accent:     #00732C;
+
+  /* --- System: Important (Error / Red) --- */
+  --fd-colors-system-important-background-default: #D22839;
+  --fd-colors-system-important-background-subtle:  #FDECED;
+  --fd-colors-system-important-border-default:     #D22839;
+  --fd-colors-system-important-content-accent:     #C8002B;
+
+  /* --- System: Warning (Orange) --- */
+  --fd-colors-system-warning-background-default: #FF8C31;
+  --fd-colors-system-warning-background-subtle:  #FFF1E6;
+  --fd-colors-system-warning-border-default:     #FF8C31;
+  --fd-colors-system-warning-content-accent:     #A44800;
+
+  /* --- System: Alert (Notification / Yellow) --- */
+  --fd-colors-system-alert-background-default: #FFDC2E;
+  --fd-colors-system-alert-background-subtle:  #FFF6BD;
+  --fd-colors-system-alert-border-default:     #FFDC2E;
+  --fd-colors-system-alert-content-accent:     #756100;
+
+  /* --- System: Info (Blue) --- */
+  --fd-colors-system-info-background-default: #005FC8;
+  --fd-colors-system-info-background-subtle:  #EAF4FF;
+  --fd-colors-system-info-border-default:     #005FC8;
+  --fd-colors-system-info-content-accent:     #004EA3;
+  --fd-colors-system-info-content-on-subtle:  #05285A;
+
+  /* --- System: Neutral --- */
+  --fd-colors-system-neutral-background-default: #B0B7BF;
+  --fd-colors-system-neutral-background-subtle:  #EAF0F6;
+  --fd-colors-system-neutral-border-default:     #B0B7BF;
+
+  /* --- Component: Button Primary (Green) --- */
+  --fd-colors-component-button-primary-background-base:   #128000;
+  --fd-colors-component-button-primary-background-hover:  #0F6B00;
+  --fd-colors-component-button-primary-background-active: #0C5600;
+  --fd-colors-component-button-primary-content:           #ffffff;
+
+  /* --- Component: Button Secondary --- */
+  --fd-colors-component-button-secondary-background-base:   transparent;
+  --fd-colors-component-button-secondary-background-hover:  #EAF0F6;
+  --fd-colors-component-button-secondary-background-active: #C6D3E1;
+  --fd-colors-component-button-secondary-border:            #B0B7BF;
+  --fd-colors-component-button-secondary-content:           #1C1D1D;
+
+  /* --- Component: Button Destructive --- */
+  --fd-colors-component-button-destructive-background-base:  #D22839;
+  --fd-colors-component-button-destructive-background-hover: #B01F2E;
+  --fd-colors-component-button-destructive-content:          #ffffff;
+
+  /* --- Core Palette: Blues --- */
+  --fd-colors-core-blue-d-4: #002650;
+  --fd-colors-core-blue-d-3: #003D81;
+  --fd-colors-core-blue-d-2: #004EA3;
+  --fd-colors-core-blue-d-1: #005FC8;
+  --fd-colors-core-blue:     #0070EB;
+  --fd-colors-core-blue-l-1: #2B90FF;
+  --fd-colors-core-blue-l-2: #64AEFF;
+  --fd-colors-core-blue-l-3: #99CAFF;
+  --fd-colors-core-blue-l-4: #C8E2FF;
+  --fd-colors-core-blue-l-5: #EAF4FF;
+
+  /* --- Core Palette: Greens --- */
+  --fd-colors-core-green-d-4: #002E11;
+  --fd-colors-core-green-d-2: #005D23;
+  --fd-colors-core-green-d-1: #00732C;
+  --fd-colors-core-green:     #128000;
+  --fd-colors-core-green-l-1: #1BB152;
+  --fd-colors-core-green-l-2: #31C268;
+  --fd-colors-core-green-l-5: #E9F8EF;
+
+  /* --- Core Palette: Navies --- */
+  --fd-colors-core-navy-d-4: #011638;
+  --fd-colors-core-navy-d-3: #05285A;
+  --fd-colors-core-navy:     #184C8B;
+  --fd-colors-core-navy-l-1: #6682A2;
+  --fd-colors-core-navy-l-4: #C6D3E1;
+  --fd-colors-core-navy-l-5: #EBF2FA;
+
+  /* --- Core Palette: Reds --- */
+  --fd-colors-core-red-d-3: #83001C;
+  --fd-colors-core-red-d-2: #A40023;
+  --fd-colors-core-red-d-1: #C8002B;
+  --fd-colors-core-red:     #D22839;
+  --fd-colors-core-red-l-1: #EB4758;
+  --fd-colors-core-red-l-5: #FDECED;
+
+  /* --- Core Palette: Yellows --- */
+  --fd-colors-core-yellow-d-1: #756100;
+  --fd-colors-core-yellow:     #8A7000;
+  --fd-colors-core-yellow-l-4: #FFDC2E;
+  --fd-colors-core-yellow-l-5: #FFF6BD;
+
+  /* --- Core Palette: Greys --- */
+  --fd-colors-core-grey-d-4: #1C1D1D;
+  --fd-colors-core-grey:     #6A6F73;
+  --fd-colors-core-grey-l-2: #B0B7BF;
+  --fd-colors-core-grey-l-3: #CED4DB;
+  --fd-colors-core-grey-l-4: #EAF0F6;
+  --fd-colors-core-grey-l-5: #F7FBFF;
+
+  /* --- Spacing (4px base grid) --- */
+  --fd-space-space-0:  0px;
+  --fd-space-space-1:  4px;
+  --fd-space-space-2:  8px;
+  --fd-space-space-3:  12px;
+  --fd-space-space-4:  16px;
+  --fd-space-space-5:  20px;
+  --fd-space-space-6:  24px;
+  --fd-space-space-8:  32px;
+  --fd-space-space-10: 40px;
+  --fd-space-space-12: 48px;
+
+  /* --- Border Radius --- */
+  --fd-radii-border-radius-none:    0px;
+  --fd-radii-border-radius-xs:      2px;
+  --fd-radii-border-radius-default: 4px;
+  --fd-radii-border-radius-1:       4px;
+  --fd-radii-border-radius-2:       8px;
+  --fd-radii-border-radius-3:       12px;
+  --fd-radii-border-radius-4:       16px;
+  --fd-radii-border-radius-round:   9999px;
+
+  /* --- Typography: Font Families --- */
+  --fd-fonts-font-family-010: 'Proxima Nova', system-ui, -apple-system, sans-serif;
+  --fd-fonts-font-family-020: 'Shentox', sans-serif;
+  --fd-fonts-font-family-030: 'Proxima Nova Condensed', sans-serif;
+  --fd-fonts-font-family-040: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* --- Typography: Font Sizes --- */
+  --fd-font-sizes-font-size-010: 8px;
+  --fd-font-sizes-font-size-020: 10px;
+  --fd-font-sizes-font-size-030: 12px;
+  --fd-font-sizes-font-size-040: 14px;
+  --fd-font-sizes-font-size-050: 16px;
+  --fd-font-sizes-font-size-060: 18px;
+  --fd-font-sizes-font-size-070: 20px;
+  --fd-font-sizes-font-size-080: 22px;
+  --fd-font-sizes-font-size-090: 24px;
+  --fd-font-sizes-font-size-100: 28px;
+  --fd-font-sizes-font-size-110: 32px;
+  --fd-font-sizes-font-size-130: 40px;
+  --fd-font-sizes-font-size-140: 48px;
+
+  /* --- Typography: Font Weights --- */
+  --fd-font-weights-font-weight-020: 400;
+  --fd-font-weights-font-weight-040: 600;
+  --fd-font-weights-font-weight-050: 700;
+
+  /* --- Typography: Line Heights --- */
+  --fd-line-heights-line-height-010: 1;
+  --fd-line-heights-line-height-020: 1.1;
+  --fd-line-heights-line-height-030: 1.25;
+  --fd-line-heights-line-height-040: 1.5;
+}
+
+/* ============================================================
+   DARK MODE  —  [data-theme="fanduel"][data-mode="dark"]
+   ============================================================ */
+[data-theme="fanduel"][data-mode="dark"] {
+
+  /* --- Backgrounds --- */
+  --fd-colors-background-base:          #0a0a0a;
+  --fd-colors-background-surface:       #1C1D1D;
+  --fd-colors-background-layer:         #2B2D2E;
+  --fd-colors-background-accent:        #ffffff0d;
+  --fd-colors-background-primary:       #0070EB;
+  --fd-colors-background-secondary:     #0a0a0a;
+  --fd-colors-background-promotional:   #011638;
+  --fd-colors-background-hover:         #3C3E40;
+  --fd-colors-background-active:        #0070EB;
+  --fd-colors-background-disabled:      #3C3E40;
+  --fd-colors-background-transparent:   #0a0a0a00;
+
+  /* --- Content (Text) --- */
+  --fd-colors-content-default:          #CED4DB;
+  --fd-colors-content-strong:           #ffffff;
+  --fd-colors-content-subtle:           #969DA3;
+  --fd-colors-content-disabled:         #ffffff33;
+  --fd-colors-content-on-dark:          #ffffff;
+  --fd-colors-content-on-light:         #011638;
+
+  /* --- Borders --- */
+  --fd-colors-border-default:           #6A6F73;
+  --fd-colors-border-subtle:            #4D5153;
+  --fd-colors-border-active:            #64AEFF;
+  --fd-colors-border-disabled:          #ffffff1a;
+  --fd-colors-border-inverse:           #EAF0F6;
+
+  /* --- Links --- */
+  --fd-colors-link-default-base:        #64AEFF;
+  --fd-colors-link-default-hover:       #0070EB;
+  --fd-colors-link-destructive-base:    #EA6875;
+  --fd-colors-link-inverse-default-base: #ffffff;
+  --fd-colors-link-inverse-default-hover: #C8E2FF;
+
+  /* --- Product / Brand --- */
+  --fd-colors-product-colors-primary:   #0070EB;
+
+  /* --- System: Positive (Success / Green) --- */
+  --fd-colors-system-positive-background-default: #005D23;
+  --fd-colors-system-positive-background-subtle:  #002E11;
+  --fd-colors-system-positive-border-default:     #005D23;
+  --fd-colors-system-positive-content-accent:     #7FD9A1;
+
+  /* --- System: Important (Error / Red) --- */
+  --fd-colors-system-important-background-default: #A40023;
+  --fd-colors-system-important-background-subtle:  #40020D;
+  --fd-colors-system-important-border-default:     #A40023;
+  --fd-colors-system-important-content-accent:     #F198A1;
+
+  /* --- System: Warning (Orange) --- */
+  --fd-colors-system-warning-background-default: #A44800;
+  --fd-colors-system-warning-background-subtle:  #692E00;
+  --fd-colors-system-warning-border-default:     #A44800;
+  --fd-colors-system-warning-content-accent:     #FFB77E;
+
+  /* --- System: Alert (Notification / Yellow) --- */
+  --fd-colors-system-alert-background-default: #756100;
+  --fd-colors-system-alert-background-subtle:  #4B3F00;
+  --fd-colors-system-alert-border-default:     #756100;
+  --fd-colors-system-alert-content-accent:     #FFDC2E;
+
+  /* --- System: Info (Blue) --- */
+  --fd-colors-system-info-background-default: #004EA3;
+  --fd-colors-system-info-background-subtle:  #002650;
+  --fd-colors-system-info-border-default:     #004EA3;
+  --fd-colors-system-info-content-accent:     #99CAFF;
+  --fd-colors-system-info-content-on-subtle:  #E8F4FF;
+
+  /* --- System: Neutral --- */
+  --fd-colors-system-neutral-background-default: #6A6F73;
+  --fd-colors-system-neutral-background-subtle:  #2B2D2E;
+  --fd-colors-system-neutral-border-default:     #6A6F73;
+
+  /* --- Component: Button Primary (Green) --- */
+  --fd-colors-component-button-primary-background-base:   #128000;
+  --fd-colors-component-button-primary-background-hover:  #0F6B00;
+  --fd-colors-component-button-primary-background-active: #0C5600;
+  --fd-colors-component-button-primary-content:           #ffffff;
+
+  /* --- Component: Button Secondary --- */
+  --fd-colors-component-button-secondary-background-base:   transparent;
+  --fd-colors-component-button-secondary-background-hover:  #27272A;
+  --fd-colors-component-button-secondary-background-active: #3F3F46;
+  --fd-colors-component-button-secondary-border:            #3F3F46;
+  --fd-colors-component-button-secondary-content:           #ffffff;
+
+  /* --- Component: Button Destructive --- */
+  --fd-colors-component-button-destructive-background-base:  #D22839;
+  --fd-colors-component-button-destructive-background-hover: #B01F2E;
+  --fd-colors-component-button-destructive-content:          #ffffff;
+}

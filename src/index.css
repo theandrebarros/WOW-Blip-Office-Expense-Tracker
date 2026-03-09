@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto+Condensed:wght@400;700&display=swap');
+
+/* Formation Design System tokens — must come before Tailwind so utilities can reference them */
+@import './styles/formation-theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+.focus-visible\:ring-2:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #3b82f6;
+}
+.aria-live {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/*
+ * Backwards-compatibility shim
+ * Maps the project's existing shorthand vars to official Formation token names.
+ * All existing .fd-* utility classes continue to work without changes.
+ * Formation tokens are provided by ./styles/formation-theme.css (scoped to
+ * [data-theme="fanduel"] / [data-theme="fanduel"][data-mode="dark"]).
+ */
+:root {
+    /* Typography */
+    --fd-font-primary: var(--fd-fonts-font-family-040); /* Inter */
+    --fd-font-label:   'Roboto Condensed', var(--fd-fonts-font-family-040), system-ui, sans-serif;
+    --fd-fw-300: 300;
+    --fd-fw-400: var(--fd-font-weights-font-weight-020, 400);
+    --fd-fw-500: 500;
+    --fd-fw-600: var(--fd-font-weights-font-weight-040, 600);
+    --fd-fw-700: var(--fd-font-weights-font-weight-050, 700);
+    --fd-fw-800: 800;
+    --fd-fw-900: 900;
+    --fd-fs-010: var(--fd-font-sizes-font-size-010, 8px);
+    --fd-fs-020: var(--fd-font-sizes-font-size-020, 10px);
+    --fd-fs-030: var(--fd-font-sizes-font-size-030, 12px);
+    --fd-fs-040: var(--fd-font-sizes-font-size-040, 14px);
+    --fd-fs-050: var(--fd-font-sizes-font-size-050, 16px);
+    --fd-fs-060: var(--fd-font-sizes-font-size-060, 18px);
+    --fd-fs-070: var(--fd-font-sizes-font-size-070, 20px);
+    --fd-fs-080: var(--fd-font-sizes-font-size-080, 22px);
+    --fd-fs-090: var(--fd-font-sizes-font-size-090, 24px);
+    --fd-fs-100: var(--fd-font-sizes-font-size-100, 28px);
+    --fd-fs-110: var(--fd-font-sizes-font-size-110, 32px);
+    --fd-fs-120: 36px;
+    --fd-fs-130: var(--fd-font-sizes-font-size-130, 40px);
+    --fd-fs-140: var(--fd-font-sizes-font-size-140, 48px);
+    --fd-fs-150: 60px;
+    --fd-ls-010: 0px;
+    --fd-ls-020: 0.5px;
+    --fd-ls-030: 1px;
+    --fd-lh-010: 100%;
+    --fd-lh-020: 110%;
+    --fd-lh-030: 125%;
+    --fd-lh-040: 150%;
+
+    /* Semantic color aliases → Formation tokens (light mode defaults as fallback) */
+    --fd-content-strong:      var(--fd-colors-content-strong, #05285a);
+    --fd-content-default:     var(--fd-colors-content-default, #1c1d1d);
+    --fd-content-subtle:      var(--fd-colors-content-subtle, #6a6f73);
+    --fd-bg-base:             var(--fd-colors-background-base, #eaf0f6);
+    --fd-bg-surface:          var(--fd-colors-background-surface, #ffffff);
+    --fd-bg-layer:            var(--fd-colors-background-layer, #f7fbff);
+    --fd-border-default:      var(--fd-colors-border-default, #b0b7bf);
+    --fd-border-subtle:       var(--fd-colors-border-subtle, #c6d3e1);
+    --fd-link:                var(--fd-colors-link-default-base, #0070eb);
+    --fd-link-hover:          var(--fd-colors-link-default-hover, #004ea3);
+    --fd-brand-primary:       var(--fd-colors-product-colors-primary, #0070eb);
+
+    /* Semantic status aliases */
+    --fd-success-accent:      var(--fd-colors-system-positive-content-accent, #31c268);
+    --fd-success-border:      var(--fd-colors-system-positive-border-default, #128000);
+    --fd-warning-accent:      var(--fd-colors-system-alert-content-accent, #eac300);
+    --fd-warning-border:      var(--fd-colors-system-alert-border-default, #eac300);
+    --fd-danger-accent:       var(--fd-colors-system-important-content-accent, #eb4758);
+    --fd-danger-border:       var(--fd-colors-system-important-border-default, #d22839);
+    --fd-danger-bg-subtle:    var(--fd-colors-system-important-background-subtle, #fdeced);
+
+    /* Info notification aliases */
+    --system-info-background-subtle:  var(--fd-colors-system-info-background-subtle, #EAF4FF);
+    --system-info-content-accent:     var(--fd-colors-system-info-content-accent, #004EA3);
+    --system-info-content-onSubtle:   var(--fd-colors-system-info-content-on-subtle, #05285A);
+}
+
+/* Dark mode: activated by Tailwind's class strategy OR Formation's data-mode attribute */
+.dark,
+[data-mode="dark"] {
+    --fd-content-strong:      var(--fd-colors-content-strong, #ffffff);
+    --fd-content-default:     var(--fd-colors-content-default, #ced4db);
+    --fd-content-subtle:      var(--fd-colors-content-subtle, #969da3);
+    --fd-bg-base:             var(--fd-colors-background-base, #0a0a0a);
+    --fd-bg-surface:          var(--fd-colors-background-surface, #1c1d1d);
+    --fd-bg-layer:            var(--fd-colors-background-layer, #2b2d2e);
+    --fd-border-default:      var(--fd-colors-border-default, #6a6f73);
+    --fd-border-subtle:       var(--fd-colors-border-subtle, #4d5153);
+    --fd-link:                var(--fd-colors-link-default-base, #64aeff);
+    --fd-link-hover:          var(--fd-colors-link-default-hover, #0070eb);
+    --fd-brand-primary:       var(--fd-colors-product-colors-primary, #0070eb);
+    --fd-success-accent:      var(--fd-colors-system-positive-content-accent, #7fd9a1);
+    --fd-success-border:      var(--fd-colors-system-positive-border-default, #005d23);
+    --fd-warning-accent:      var(--fd-colors-system-alert-content-accent, #ffdc2e);
+    --fd-warning-border:      var(--fd-colors-system-alert-border-default, #756100);
+    --fd-danger-accent:       var(--fd-colors-system-important-content-accent, #ea6875);
+    --fd-danger-border:       var(--fd-colors-system-important-border-default, #a40023);
+    --fd-danger-bg-subtle:    var(--fd-colors-system-important-background-subtle, #40020d);
+    --system-info-background-subtle:  var(--fd-colors-system-info-background-subtle, #0A2540);
+    --system-info-content-accent:     var(--fd-colors-system-info-content-accent, #64AEFF);
+    --system-info-content-onSubtle:   var(--fd-colors-system-info-content-on-subtle, #E8F4FF);
+}
+
+.fd-bg-base { background-color: var(--fd-bg-base); }
+.fd-bg-surface { background-color: color-mix(in srgb, var(--fd-bg-surface) 80%, transparent); }
+.fd-bg-layer { background-color: var(--fd-bg-layer); }
+.fd-text-strong { color: var(--fd-content-strong); }
+.fd-text-default { color: var(--fd-content-default); }
+.fd-text-subtle { color: var(--fd-content-subtle); }
+.fd-border-default { border-color: var(--fd-border-subtle); }
+.fd-border-subtle { border-color: var(--fd-border-subtle); }
+.fd-link { color: var(--fd-link); }
+.fd-link:hover { color: var(--fd-link-hover); }
+.fd-input { background-color: var(--fd-bg-layer); color: var(--fd-content-default); border-color: var(--fd-border-default); }
+.fd-input::placeholder { color: var(--fd-content-subtle); }
+.fd-hover-surface:hover { background-color: var(--fd-bg-layer); }
+.dark .fd-hover-surface:hover {
+    background-color: color-mix(in srgb, var(--fd-bg-layer) 85%, var(--fd-bg-surface) 15%);
+}
+.dark .location-card:hover {
+    background-color: color-mix(in srgb, var(--fd-bg-layer) 80%, var(--fd-bg-surface) 20%);
+    border-color: color-mix(in srgb, var(--fd-border-subtle) 70%, var(--fd-content-subtle) 30%);
+}
+
+body { font-family: var(--fd-font-primary); font-size: var(--fd-fs-050); line-height: var(--fd-lh-040); letter-spacing: var(--fd-ls-010); }
+h1, .fd-h1 { font-family: var(--fd-font-primary); font-weight: var(--fd-fw-700); font-size: 16px; line-height: 1.5rem; letter-spacing: var(--fd-ls-010); }
+h2, .fd-h2 { font-family: var(--fd-font-primary); font-weight: var(--fd-fw-600); font-size: var(--fd-fs-090); line-height: var(--fd-lh-030); }
+label, .fd-label { font-family: var(--fd-font-label); font-weight: var(--fd-fw-500); letter-spacing: var(--fd-ls-020); }
+
+@media (max-width: 640px) {
+    .fd-mobile-h1 { font-size: 1rem; line-height: 1.5rem; }
+}
+
+.logo-lightmode { display: inline-block; }
+.logo-darkmode { display: none; }
+.dark .logo-lightmode { display: none; }
+.dark .logo-darkmode { display: inline-block; }
+
+.fd-text-success { color: var(--fd-success-accent); }
+.fd-text-warning { color: var(--fd-warning-accent); }
+.fd-text-danger { color: var(--fd-danger-accent); }
+.fd-border-success { border-color: var(--fd-success-border); }
+.fd-border-warning { border-color: var(--fd-warning-border); }
+.fd-border-danger { border-color: var(--fd-danger-border); }
+
+.fd-alert { border-width: 1px; border-style: solid; }
+.fd-alert-danger { background-color: var(--fd-danger-bg-subtle); border-color: var(--fd-danger-border); }
+.fd-alert-title { color: var(--fd-content-strong); font-weight: var(--fd-fw-600); }
+.fd-alert-desc { color: var(--fd-content-default); }
+
+.fd-info-notification {
+    background-color: var(--system-info-background-subtle, #EAF4FF);
+    border-radius: 4px;
+    border: 1px solid var(--fd-border-subtle, #c6d3e1);
+    padding: 20px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    position: relative;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.dark .fd-info-notification { border: none; }
+.fd-info-notification-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--system-info-content-accent, #004EA3);
+    margin-top: 2px;
+    transition: color 0.2s;
+}
+.fd-info-notification-content { flex: 1; min-width: 0; }
+.fd-info-notification-title {
+    font-family: var(--fd-font-primary, 'Inter', sans-serif);
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.25;
+    color: var(--system-info-content-onSubtle, #05285A);
+    margin-bottom: 0;
+    transition: color 0.2s;
+    text-transform: none;
+}
+.fd-info-notification-hint {
+    font-family: var(--fd-font-primary, 'Inter', sans-serif);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--system-info-content-onSubtle, #05285A);
+    margin-top: 4px;
+    margin-bottom: 0;
+    opacity: 0.8;
+    transition: color 0.2s, opacity 0.2s;
+}
+.fd-info-notification-message {
+    font-family: var(--fd-font-primary, 'Inter', sans-serif);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--system-info-content-onSubtle, #05285A);
+    white-space: pre-wrap;
+    margin-top: 4px;
+    transition: color 0.2s;
+}
+.fd-info-notification-message.collapsed { display: none; }
+.fd-info-notification-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--system-info-content-onSubtle, #05285A);
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+}
+.fd-info-notification-toggle:hover {
+    background-color: color-mix(in srgb, var(--system-info-content-onSubtle, #05285A) 10%, transparent);
+}
+.fd-info-notification-toggle:focus {
+    outline: none;
+}
+.fd-info-notification-toggle:focus-visible {
+    outline: 2px solid var(--fd-colors-product-colors-primary, #0070EB);
+    outline-offset: 2px;
+}
+.fd-info-notification-toggle { transform: rotate(180deg); }
+.fd-info-notification-toggle.collapsed { transform: rotate(0deg); }
+.fd-info-notification-toggle svg { transition: transform 0.2s; }

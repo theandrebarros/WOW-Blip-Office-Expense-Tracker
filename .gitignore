@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.local
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
